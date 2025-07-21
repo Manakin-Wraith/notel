@@ -25,7 +25,8 @@ const getInitialPages = (): Page[] => {
 
                 const sanitizedId = String(p.id || createBlockId());
                 const sanitizedTitle = typeof p.title === 'string' ? p.title : 'Untitled';
-                const sanitizedIcon = typeof p.icon === 'string' && ICONS.includes(p.icon) ? p.icon : 'document-text';
+                // Allow both predefined icons and emoji characters
+                const sanitizedIcon = typeof p.icon === 'string' && p.icon.length > 0 ? p.icon : 'document-text';
                 const sanitizedParentId = p.parentId !== undefined ? p.parentId : null;
                 const sanitizedDueDate = typeof p.dueDate === 'string' ? p.dueDate : null;
                 const sanitizedStatus = (['todo', 'in-progress', 'done'] as const).includes(p.status) ? p.status : null;
