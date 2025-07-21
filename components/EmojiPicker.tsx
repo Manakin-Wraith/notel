@@ -76,26 +76,26 @@ const EmojiPicker: React.FC<EmojiPickerProps> = ({ onSelect, onClose }) => {
   return (
     <div
       ref={ref}
-      className="absolute z-10 top-full mt-2 w-80 max-h-[50vh] flex flex-col bg-black/50 backdrop-blur-xl border border-white/10 rounded-lg shadow-lg"
+      className="absolute z-10 top-full mt-2 w-80 sm:w-96 max-h-[60vh] sm:max-h-[50vh] flex flex-col bg-black/50 backdrop-blur-xl border border-white/10 rounded-lg shadow-lg"
       role="dialog"
       aria-label="Emoji selector"
     >
-      <div className="p-2 border-b border-white/10">
+      <div className="p-3 sm:p-2 border-b border-white/10">
         <input
           type="text"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           placeholder="Search emoji..."
-          className="w-full bg-transparent text-sm text-gray-200 placeholder-gray-500 focus:outline-none px-2 py-1"
+          className="w-full bg-transparent text-sm text-gray-200 placeholder-gray-500 focus:outline-none px-2 py-2 sm:py-1 rounded border border-white/10 focus:border-purple-400"
         />
       </div>
       {!query && (
-         <div className="p-2 border-b border-white/10 flex justify-around">
+         <div className="p-2 border-b border-white/10 flex justify-around overflow-x-auto">
             {EMOJI_DATA.map(category => (
                 <button 
                     key={category.name} 
                     onClick={() => handleCategoryClick(category.name)}
-                    className={`p-1.5 rounded-md transition-colors text-xl ${activeCategory === category.name ? 'bg-white/20' : 'hover:bg-white/10'}`}
+                    className={`p-2 sm:p-1.5 rounded-md transition-colors text-xl sm:text-lg min-w-[2.5rem] ${activeCategory === category.name ? 'bg-white/20' : 'hover:bg-white/10'}`}
                     title={category.name}
                 >
                     {CATEGORY_ICONS[category.name]}
@@ -103,20 +103,16 @@ const EmojiPicker: React.FC<EmojiPickerProps> = ({ onSelect, onClose }) => {
             ))}
         </div>
       )}
-      <div 
-        ref={scrollContainerRef}
-        onScroll={handleScroll}
-        className="flex-1 overflow-y-auto p-2"
-      >
+      <div className="flex-1 overflow-y-auto p-3 sm:p-2" onScroll={handleScroll} ref={scrollContainerRef}>
         {filteredData.map(category => (
-          <div key={category.name} ref={el => { if(el) categoryRefs.current[category.name] = el; }}>
-            <h3 className="text-xs font-bold uppercase text-gray-500 py-2 px-1 sticky top-0 bg-black/50 backdrop-blur-xl">{category.name}</h3>
-            <div className="grid grid-cols-8 gap-1">
+          <div key={category.name} ref={el => { if (el) categoryRefs.current[category.name] = el; }}>
+            <h3 className="text-xs font-semibold text-gray-400 mb-2 px-1">{category.name}</h3>
+            <div className="grid grid-cols-6 sm:grid-cols-8 gap-1 mb-4">
               {category.emojis.map(emoji => (
                 <button
-                  key={emoji.name}
+                  key={emoji.emoji}
                   onClick={() => onSelect(emoji.emoji)}
-                  className="p-1 rounded-md text-2xl hover:bg-white/20 transition-colors focus:outline-none focus:ring-2 focus:ring-purple-400"
+                  className="p-3 sm:p-2 rounded-md hover:bg-white/10 transition-colors text-xl sm:text-lg active:bg-white/20 touch-manipulation"
                   title={emoji.name}
                 >
                   {emoji.emoji}

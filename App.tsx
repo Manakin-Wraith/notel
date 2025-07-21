@@ -8,6 +8,7 @@ import Agenda from './components/Agenda';
 import Board from './components/Board';
 import CalendarView from './components/CalendarView';
 import { ICONS } from './components/icons/icon-constants';
+import HamburgerIcon from './components/icons/HamburgerIcon';
 
 const createBlockId = () => `${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
 
@@ -133,12 +134,11 @@ const getRandomIcon = () => ICONS[Math.floor(Math.random() * ICONS.length)];
 
 const App: React.FC = () => {
   const [pages, setPages] = useState<Page[]>(getInitialPages);
-  const [activePageId, setActivePageId] = useState<string | null>(() => {
-    const initialPages = getInitialPages();
-    return initialPages.length > 0 ? initialPages[0].id : null;
-  });
+  const [activePageId, setActivePageId] = useState<string | null>(null);
   const [isPaletteOpen, setIsPaletteOpen] = useState(false);
   const [viewMode, setViewMode] = useState<'editor' | 'agenda' | 'board' | 'calendar'>('editor');
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
 
 
   // Save to localStorage whenever pages change
@@ -148,15 +148,49 @@ const App: React.FC = () => {
 
   // Listen for Cmd/Ctrl+K to open command palette
   useEffect(() => {
-    const handler = (e: KeyboardEvent) => {
+    const handleKeyDown = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
         e.preventDefault();
         setIsPaletteOpen(true);
       }
     };
-    window.addEventListener('keydown', handler);
-    return () => window.removeEventListener('keydown', handler);
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
   }, []);
+
+  // Handle mobile detection and sidebar behavior
+  useEffect(() => {
+    const checkMobile = () => {
+      const mobile = window.innerWidth < 768;
+      setIsMobile(mobile);
+      if (!mobile) {
+        setIsSidebarOpen(false); // Auto-close sidebar on desktop
+      }
+    };
+
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
+
+  // Close sidebar when clicking outside on mobile
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (isMobile && isSidebarOpen) {
+        const sidebar = document.getElementById('mobile-sidebar');
+        const hamburger = document.getElementById('hamburger-button');
+        if (sidebar && !sidebar.contains(e.target as Node) && 
+            hamburger && !hamburger.contains(e.target as Node)) {
+          setIsSidebarOpen(false);
+        }
+      }
+    };
+
+    if (isMobile && isSidebarOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+      return () => document.removeEventListener('mousedown', handleClickOutside);
+    }
+  }, [isMobile, isSidebarOpen]);
 
   const handleAddPage = useCallback((initialData?: Partial<Page>, openInEditor = true) => {
     const newPage: Page = {
@@ -322,18 +356,60 @@ for (const child of children) {
 
 
   return (
-    <div className="flex h-screen w-full bg-[#111111] text-gray-200">
-      <Sidebar
-        pages={pages}
-        activePageId={activePageId}
-        viewMode={viewMode}
-        onSelectPage={handleSelectPage}
-        onAddPage={() => handleAddPage()}
-        onDeletePage={handleDeletePage}
-        onMovePage={handleMovePage}
-        onSetViewMode={setViewMode}
-      />
-      {renderView()}
+    <div className="flex h-screen w-full bg-[#111111] text-gray-200 relative">
+      {/* Mobile hamburger button */}
+      {isMobile && (
+        <button
+          id="hamburger-button"
+          onClick={() => setIsSidebarOpen(!isSidebarOpen)}
+          className="fixed top-4 left-4 z-50 p-2 bg-black/50 backdrop-blur-xl border border-white/10 rounded-lg text-gray-200 hover:bg-white/10 transition-colors md:hidden"
+          aria-label="Toggle sidebar"
+        >
+          <HamburgerIcon className="w-5 h-5" />
+        </button>
+      )}
+
+      {/* Mobile overlay */}
+      {isMobile && isSidebarOpen && (
+        <div className="fixed inset-0 bg-black/50 z-30 md:hidden" />
+      )}
+
+      {/* Sidebar */}
+      <div className={`
+        ${isMobile ? 'fixed' : 'relative'}
+        ${isMobile && !isSidebarOpen ? '-translate-x-full' : 'translate-x-0'}
+        transition-transform duration-300 ease-in-out
+        ${isMobile ? 'z-40' : 'z-0'}
+        h-screen
+      `}>
+        <Sidebar
+          id={isMobile ? 'mobile-sidebar' : undefined}
+          pages={pages}
+          activePageId={activePageId}
+          viewMode={viewMode}
+          onSelectPage={(id) => {
+            handleSelectPage(id);
+            if (isMobile) setIsSidebarOpen(false);
+          }}
+          onAddPage={() => {
+            handleAddPage();
+            if (isMobile) setIsSidebarOpen(false);
+          }}
+          onDeletePage={handleDeletePage}
+          onMovePage={handleMovePage}
+          onSetViewMode={(mode) => {
+            setViewMode(mode);
+            if (isMobile) setIsSidebarOpen(false);
+          }}
+          isMobile={isMobile}
+        />
+      </div>
+
+      {/* Main content */}
+      <div className={`flex-1 ${isMobile ? 'w-full' : ''}`}>
+        {renderView()}
+      </div>
+
       {isPaletteOpen && (
         <CommandPalette
           pages={pages}

@@ -752,7 +752,7 @@ const Editor: React.FC<EditorProps> = ({ page, onUpdateTitle, onUpdateContent, o
   }, [blocks, hoveredTablePos]);
 
   return (
-    <main className="flex-1 p-8 md:p-12 overflow-y-auto" ref={editorRef} onDrop={handleDrop}>
+    <main className="flex-1 p-4 sm:p-6 md:p-8 lg:p-12 overflow-y-auto" ref={editorRef} onDrop={handleDrop}>
       <div className="max-w-3xl mx-auto">
         <input type="file" ref={fileInputRef} onChange={handleImageUpload} accept="image/*" className="hidden" />
 
@@ -762,9 +762,9 @@ const Editor: React.FC<EditorProps> = ({ page, onUpdateTitle, onUpdateContent, o
           </button>
           {showEmojiPicker && <EmojiPicker onSelect={handleIconSelect} onClose={() => setShowEmojiPicker(false)} />}
         </div>
-        <input type="text" value={title} onChange={handleTitleChange} placeholder="Untitled" className="w-full bg-transparent text-4xl md:text-5xl font-bold focus:outline-none text-gray-100 placeholder-gray-600 mb-4" />
+        <input type="text" value={title} onChange={handleTitleChange} placeholder="Untitled" className="w-full bg-transparent text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold focus:outline-none text-gray-100 placeholder-gray-600 mb-4" />
 
-        <div className="flex items-center gap-4 mb-4 pb-4 border-b border-white/10">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-4 mb-4 pb-4 border-b border-white/10">
           <div className="relative">
             {page.dueDate ? (
               <button onClick={() => setShowDatePicker(true)} className="flex items-center gap-2 text-sm text-gray-400 hover:bg-white/10 p-1.5 rounded-md transition-colors group">

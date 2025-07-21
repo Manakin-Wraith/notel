@@ -176,9 +176,11 @@ interface SidebarProps {
   onDeletePage: (id: string) => void;
   onMovePage: (draggedId: string, targetId: string, position: DropIndicatorPosition) => void;
   onSetViewMode: (mode: ViewMode) => void;
+  id?: string;
+  isMobile?: boolean;
 }
 
-const Sidebar: React.FC<SidebarProps> = ({ pages, activePageId, viewMode, onSelectPage, onAddPage, onDeletePage, onMovePage, onSetViewMode }) => {
+const Sidebar: React.FC<SidebarProps> = ({ pages, activePageId, viewMode, onSelectPage, onAddPage, onDeletePage, onMovePage, onSetViewMode, id, isMobile = false }) => {
   const [isMac, setIsMac] = useState(false);
   const [dropIndicator, setDropIndicator] = useState<{ pageId: string, position: DropIndicatorPosition } | null>(null);
   const [expandedPages, setExpandedPages] = useState<Set<string>>(() => findAncestors(activePageId, pages));
@@ -218,7 +220,10 @@ const Sidebar: React.FC<SidebarProps> = ({ pages, activePageId, viewMode, onSele
   };
 
   return (
-    <aside className="w-72 h-screen p-4 flex flex-col bg-black/30 backdrop-blur-xl border-r border-white/10 shrink-0">
+    <aside 
+      id={id}
+      className={`w-72 h-screen p-4 flex flex-col bg-black/30 backdrop-blur-xl border-r border-white/10 shrink-0 ${isMobile ? 'min-w-72' : ''}`}
+    >
       <div className="flex items-center justify-between mb-6 px-1">
         <h1 className="text-xl font-bold text-gray-200">Notel</h1>
         <div className="flex items-center gap-1">
