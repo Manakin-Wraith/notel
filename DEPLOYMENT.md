@@ -80,3 +80,4 @@ The app is configured for automatic deployment on:
 - Push to main branch → Production deployment
 - Pull request → Preview deployment
 - Environment changes → Automatic rebuild
+# Test deployment trigger
