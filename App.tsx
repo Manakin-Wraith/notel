@@ -2,6 +2,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import Sidebar from './components/Sidebar';
 import Editor from './components/Editor';
+import Auth from './components/Auth';
 import type { Page, Block, TableContent, TableRow } from './types';
 import CommandPalette from './components/CommandPalette';
 import Agenda from './components/Agenda';
@@ -9,6 +10,8 @@ import Board from './components/Board';
 import CalendarView from './components/CalendarView';
 import { ICONS } from './components/icons/icon-constants';
 import HamburgerIcon from './components/icons/HamburgerIcon';
+import { AuthProvider, useAuth } from './contexts/AuthContext';
+import { DatabaseService } from './lib/database';
 
 const createBlockId = () => `${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
 
@@ -133,19 +136,65 @@ const getInitialPages = (): Page[] => {
 
 const getRandomIcon = () => ICONS[Math.floor(Math.random() * ICONS.length)];
 
-const App: React.FC = () => {
-  const [pages, setPages] = useState<Page[]>(getInitialPages);
+const AppContent: React.FC = () => {
+  const { user, loading: authLoading, signOut } = useAuth();
+  const [pages, setPages] = useState<Page[]>([]);
   const [activePageId, setActivePageId] = useState<string | null>(null);
   const [isPaletteOpen, setIsPaletteOpen] = useState(false);
   const [viewMode, setViewMode] = useState<'editor' | 'agenda' | 'board' | 'calendar'>('editor');
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [syncing, setSyncing] = useState(false);
 
 
-  // Save to localStorage whenever pages change
+  // Load data from Supabase when user is authenticated
   useEffect(() => {
+    const loadData = async () => {
+      if (!user) {
+        setLoading(false);
+        return;
+      }
+
+      try {
+        setLoading(true);
+        const supabasePages = await DatabaseService.getPages();
+        
+        // Check if user has existing data in Supabase
+        if (supabasePages.length === 0) {
+          // Try to migrate localStorage data
+          const localPages = getInitialPages();
+          if (localPages.length > 0) {
+            setSyncing(true);
+            await DatabaseService.syncLocalData(localPages);
+            const migratedPages = await DatabaseService.getPages();
+            setPages(migratedPages);
+            setSyncing(false);
+          } else {
+            setPages([]);
+          }
+        } else {
+          setPages(supabasePages);
+        }
+      } catch (error) {
+        console.error('Failed to load data:', error);
+        // Fallback to localStorage
+        setPages(getInitialPages());
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadData();
+  }, [user]);
+
+  // Save to Supabase whenever pages change (if user is authenticated)
+  useEffect(() => {
+    if (!user || loading) return;
+    
+    // Also save to localStorage as backup
     localStorage.setItem('glasstion-pages', JSON.stringify(pages));
-  }, [pages]);
+  }, [pages, user, loading]);
 
   // Listen for Cmd/Ctrl+K to open command palette
   useEffect(() => {
@@ -193,138 +242,170 @@ const App: React.FC = () => {
     }
   }, [isMobile, isSidebarOpen]);
 
-  const handleAddPage = useCallback((initialData?: Partial<Page>, openInEditor = true) => {
+  const handleAddPage = useCallback(async (initialData?: Partial<Page>, openInEditor = true) => {
     const newPage: Page = {
-      id: new Date().toISOString(),
-      title: 'Untitled',
-      content: [{ id: createBlockId(), type: 'paragraph', content: '' }],
-      icon: getRandomIcon(),
-      parentId: null,
-      dueDate: null,
-      status: 'todo',
-      ...initialData,
+      id: createBlockId(),
+      title: initialData?.title || 'Untitled',
+      icon: initialData?.icon || getRandomIcon(),
+      parentId: initialData?.parentId || null,
+      dueDate: initialData?.dueDate || null,
+      status: initialData?.status || null,
+      content: initialData?.content || [{ id: createBlockId(), type: 'paragraph', content: '', checked: false }],
     };
-    const newPages = [newPage, ...pages];
-    setPages(newPages);
-    
-    if (openInEditor) {
-        setActivePageId(newPage.id);
-        setViewMode('editor');
+
+    if (user) {
+      try {
+        await DatabaseService.createPage(newPage);
+        setPages(prev => [...prev, newPage]);
+      } catch (error) {
+        console.error('Failed to create page:', error);
+        setPages(prev => [...prev, newPage]);
+      }
+    } else {
+      setPages(prev => [...prev, newPage]);
     }
 
-    setIsPaletteOpen(false); // Close palette after action
-  }, [pages]);
+    if (openInEditor) {
+      setActivePageId(newPage.id);
+      setViewMode('editor');
+    }
+  }, [user]);
 
-  const handleDeletePage = (id: string) => {
-    setPages(currentPages => {
-      const pageToDelete = currentPages.find(p => p.id === id);
-      if (!pageToDelete) return currentPages;
-      
-      const pagesToKeep = currentPages.filter(p => p.id !== id);
-      
-      // Re-parent any children of the deleted page to the root
-      const newPages = pagesToKeep.map(p => {
-        if (p.parentId === id) {
-          return { ...p, parentId: null };
-        }
-        return p;
-      });
-
-      if (activePageId === id) {
-          // if the active page is deleted, select the first page or null
-          setActivePageId(newPages.length > 0 ? newPages[0].id : null);
+  const handleDeletePage = useCallback(async (pageId: string) => {
+    if (user) {
+      try {
+        await DatabaseService.deletePage(pageId);
+      } catch (error) {
+        console.error('Failed to delete page:', error);
       }
+    }
+
+    setPages(prev => prev.filter(p => p.id !== pageId));
+    if (activePageId === pageId) {
+      setActivePageId(null);
+    }
+  }, [activePageId, user]);
+
+  const handleUpdatePageTitle = useCallback(async (pageId: string, title: string) => {
+    const updatedPages = pages.map(p => p.id === pageId ? { ...p, title } : p);
+    const updatedPage = updatedPages.find(p => p.id === pageId);
+
+    if (user && updatedPage) {
+      try {
+        await DatabaseService.updatePage(updatedPage);
+      } catch (error) {
+        console.error('Failed to update page title:', error);
+      }
+    }
+
+    setPages(updatedPages);
+  }, [pages, user]);
+
+  const handleUpdatePageContent = useCallback(async (pageId: string, content: Block[]) => {
+    const updatedPages = pages.map(p => p.id === pageId ? { ...p, content } : p);
+    const updatedPage = updatedPages.find(p => p.id === pageId);
+
+    if (user && updatedPage) {
+      try {
+        await DatabaseService.updatePage(updatedPage);
+      } catch (error) {
+        console.error('Failed to update page content:', error);
+      }
+    }
+
+    setPages(updatedPages);
+  }, [pages, user]);
+
+  const handleUpdatePageIcon = useCallback(async (pageId: string, icon: string) => {
+    const updatedPages = pages.map(p => p.id === pageId ? { ...p, icon } : p);
+    const updatedPage = updatedPages.find(p => p.id === pageId);
+
+    if (user && updatedPage) {
+      try {
+        await DatabaseService.updatePage(updatedPage);
+      } catch (error) {
+        console.error('Failed to update page icon:', error);
+      }
+    }
+
+    setPages(updatedPages);
+  }, [pages, user]);
+
+  const handleUpdatePageDate = useCallback(async (pageId: string, dueDate: string | null) => {
+    const updatedPages = pages.map(p => p.id === pageId ? { ...p, dueDate } : p);
+    const updatedPage = updatedPages.find(p => p.id === pageId);
+
+    if (user && updatedPage) {
+      try {
+        await DatabaseService.updatePage(updatedPage);
+      } catch (error) {
+        console.error('Failed to update page date:', error);
+      }
+    }
+
+    setPages(updatedPages);
+  }, [pages, user]);
+
+  const handleUpdatePageStatus = useCallback(async (pageId: string, status: 'todo' | 'in-progress' | 'done' | null) => {
+    const updatedPages = pages.map(p => p.id === pageId ? { ...p, status } : p);
+    const updatedPage = updatedPages.find(p => p.id === pageId);
+
+    if (user && updatedPage) {
+      try {
+        await DatabaseService.updatePage(updatedPage);
+      } catch (error) {
+        console.error('Failed to update page status:', error);
+      }
+    }
+
+    setPages(updatedPages);
+  }, [pages, user]);
+
+  const handleMovePage = useCallback((draggedId: string, targetId: string, position: 'top' | 'bottom' | 'middle') => {
+    setPages(currentPages => {
+      const getAllDescendantIds = (pageId: string): Set<string> => {
+        const descendantIds = new Set<string>();
+        const findChildrenOf = (pId: string) => {
+          const children = currentPages.filter(p => p.parentId === pId);
+          children.forEach(child => {
+            descendantIds.add(child.id);
+            findChildrenOf(child.id);
+          });
+        };
+        findChildrenOf(pageId);
+        return descendantIds;
+      };
+
+      if (targetId === draggedId || getAllDescendantIds(draggedId).has(targetId)) {
+        return currentPages;
+      }
+
+      const draggedPage = currentPages.find(p => p.id === draggedId);
+      const otherPages = currentPages.filter(p => p.id !== draggedId);
+
+      if (!draggedPage) return currentPages;
+
+      let newPages: Page[];
+
+      if (position === 'middle') {
+        newPages = [...otherPages, { ...draggedPage, parentId: targetId }];
+      } else {
+        const targetPage = currentPages.find(p => p.id === targetId);
+        newPages = [...otherPages, { ...draggedPage, parentId: targetPage?.parentId || null }];
+      }
+
       return newPages;
     });
-  };
+  }, []);
 
   const handleSelectPage = useCallback((id: string) => {
     setActivePageId(id);
     setViewMode('editor');
-    setIsPaletteOpen(false); // Close palette after action
+    setIsPaletteOpen(false);
   }, []);
 
-  const handleUpdatePageContent = (id: string, content: Block[]) => {
-    setPages((prevPages) =>
-      prevPages.map((p) => (p.id === id ? { ...p, content } : p))
-    );
-  };
-  
-  const handleUpdatePageTitle = (id: string, title: string) => {
-    setPages((prevPages) =>
-      prevPages.map((p) => (p.id === id ? { ...p, title } : p))
-    );
-  };
+  const activePage = pages.find(p => p.id === activePageId) || null;
 
-  const handleUpdatePageIcon = (id: string, icon: string) => {
-    setPages((prevPages) =>
-      prevPages.map((p) => (p.id === id ? { ...p, icon } : p))
-    );
-  };
-
-  const handleUpdatePageDate = (id: string, dueDate: string | null) => {
-    setPages((prevPages) =>
-      prevPages.map((p) => (p.id === id ? { ...p, dueDate } : p))
-    );
-  };
-
-  const handleUpdatePageStatus = (id: string, status: 'todo' | 'in-progress' | 'done' | null) => {
-    setPages((prevPages) =>
-      prevPages.map((p) => (p.id === id ? { ...p, status } : p))
-    );
-  };
-
-  const handleMovePage = useCallback((draggedId: string, targetId: string, position: 'top' | 'bottom' | 'middle') => {
-      setPages(currentPages => {
-        // Helper to find all descendants of a page to prevent illegal moves
-        const getAllDescendantIds = (pageId: string): Set<string> => {
-            const descendantIds = new Set<string>();
-            const findChildrenOf = (pId: string) => {
-                const children = currentPages.filter(p => p.parentId === pId);
-for (const child of children) {
-                    descendantIds.add(child.id);
-                    findChildrenOf(child.id);
-                }
-            };
-            findChildrenOf(pageId);
-            return descendantIds;
-        };
-
-        // Prevent dropping a page into itself or one of its descendants
-        if (targetId === draggedId || getAllDescendantIds(draggedId).has(targetId)) {
-            console.warn("Invalid move: cannot move a page into itself or its own descendant.");
-            return currentPages;
-        }
-
-        const draggedPage = currentPages.find(p => p.id === draggedId);
-        if (!draggedPage) return currentPages;
-        
-        const pagesWithoutDragged = currentPages.filter(p => p.id !== draggedId);
-        const targetIndex = pagesWithoutDragged.findIndex(p => p.id === targetId);
-        
-        if (targetIndex === -1) {
-            console.error("Target page not found in handleMovePage");
-            return currentPages; // Should not happen
-        }
-        
-        const targetPage = pagesWithoutDragged[targetIndex];
-        const newPages = [...pagesWithoutDragged];
-
-        if (position === 'middle') { // Nesting
-          const updatedDraggedPage = { ...draggedPage, parentId: targetId };
-          newPages.splice(targetIndex + 1, 0, updatedDraggedPage);
-        } else { // Reordering
-          const updatedDraggedPage = { ...draggedPage, parentId: targetPage.parentId };
-          const insertionIndex = position === 'top' ? targetIndex : targetIndex + 1;
-          newPages.splice(insertionIndex, 0, updatedDraggedPage);
-        }
-        
-        return newPages;
-      });
-  }, []);
-
-  const activePage = pages.find((p) => p.id === activePageId) || null;
-  
   const renderView = () => {
     switch (viewMode) {
       case 'editor':
@@ -343,18 +424,46 @@ for (const child of children) {
       case 'board':
         return <Board pages={pages} onUpdateStatus={handleUpdatePageStatus} onSelectPage={handleSelectPage} />;
       case 'calendar':
-        return <CalendarView 
-          pages={pages} 
-          onAddPage={(data) => handleAddPage(data, true)} 
-          onDeletePage={handleDeletePage}
-          onSelectPage={handleSelectPage} 
-          onUpdateDate={handleUpdatePageDate} 
-        />;
+        return (
+          <CalendarView
+            pages={pages}
+            onAddPage={(data) => handleAddPage(data, true)}
+            onDeletePage={handleDeletePage}
+            onSelectPage={handleSelectPage}
+            onUpdateDate={handleUpdatePageDate}
+          />
+        );
       default:
-        return <Editor page={activePage} onUpdateTitle={handleUpdatePageTitle} onUpdateContent={handleUpdatePageContent} onUpdateIcon={handleUpdatePageIcon} onUpdateDate={handleUpdatePageDate} onUpdateStatus={handleUpdatePageStatus} />;
+        return (
+          <Editor
+            page={activePage}
+            onUpdateTitle={handleUpdatePageTitle}
+            onUpdateContent={handleUpdatePageContent}
+            onUpdateIcon={handleUpdatePageIcon}
+            onUpdateDate={handleUpdatePageDate}
+            onUpdateStatus={handleUpdatePageStatus}
+          />
+        );
     }
   };
 
+  if (authLoading || loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-[#111111]">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-500 mx-auto mb-4"></div>
+          <p className="text-gray-400">
+            {authLoading ? 'Authenticating...' : syncing ? 'Syncing your data...' : 'Loading...'}
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  // Show auth screen if user is not authenticated
+  if (!user) {
+    return <Auth />;
+  }
 
   return (
     <div className="flex h-screen w-full bg-[#111111] text-gray-200 relative">
@@ -369,6 +478,15 @@ for (const child of children) {
           <HamburgerIcon className="w-5 h-5" />
         </button>
       )}
+
+      {/* Sign out button */}
+      <button
+        onClick={signOut}
+        className="fixed top-4 right-4 z-50 p-2 bg-black/50 backdrop-blur-xl border border-white/10 rounded-lg text-gray-200 hover:bg-white/10 transition-colors text-sm"
+        title="Sign out"
+      >
+        Sign Out
+      </button>
 
       {/* Mobile overlay */}
       {isMobile && isSidebarOpen && (
@@ -420,6 +538,14 @@ for (const child of children) {
         />
       )}
     </div>
+  );
+};
+
+const App: React.FC = () => {
+  return (
+    <AuthProvider>
+      <AppContent />
+    </AuthProvider>
   );
 };
 
