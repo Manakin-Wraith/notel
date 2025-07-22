@@ -19,6 +19,7 @@ CREATE TABLE IF NOT EXISTS pages (
   title TEXT NOT NULL DEFAULT 'Untitled',
   icon TEXT DEFAULT 'document-text',
   parent_id TEXT REFERENCES pages(id) ON DELETE CASCADE,
+  position INTEGER DEFAULT 0,
   due_date TIMESTAMPTZ,
   status TEXT CHECK (status IN ('todo', 'in-progress', 'done')),
   created_at TIMESTAMPTZ DEFAULT NOW(),
@@ -37,9 +38,13 @@ CREATE TABLE IF NOT EXISTS blocks (
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
+-- Add position column to existing pages table (migration)
+ALTER TABLE pages ADD COLUMN IF NOT EXISTS position INTEGER DEFAULT 0;
+
 -- Create indexes for better performance
 CREATE INDEX IF NOT EXISTS idx_pages_user_id ON pages(user_id);
 CREATE INDEX IF NOT EXISTS idx_pages_parent_id ON pages(parent_id);
+CREATE INDEX IF NOT EXISTS idx_pages_position ON pages(user_id, parent_id, position);
 CREATE INDEX IF NOT EXISTS idx_blocks_page_id ON blocks(page_id);
 CREATE INDEX IF NOT EXISTS idx_blocks_position ON blocks(page_id, position);
 

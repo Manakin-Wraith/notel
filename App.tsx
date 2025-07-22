@@ -33,6 +33,7 @@ const getInitialPages = (): Page[] => {
                 // Allow both predefined icons and emoji characters
                 const sanitizedIcon = typeof p.icon === 'string' && p.icon.length > 0 ? p.icon : 'document-text';
                 const sanitizedParentId = p.parentId !== undefined ? p.parentId : null;
+                const sanitizedPosition = typeof p.position === 'number' ? p.position : 0;
                 const sanitizedDueDate = typeof p.dueDate === 'string' ? p.dueDate : null;
                 const sanitizedStatus = (['todo', 'in-progress', 'done'] as const).includes(p.status) ? p.status : null;
 
@@ -99,6 +100,7 @@ const getInitialPages = (): Page[] => {
                     title: sanitizedTitle,
                     icon: sanitizedIcon,
                     parentId: sanitizedParentId,
+                    position: sanitizedPosition,
                     dueDate: sanitizedDueDate,
                     status: sanitizedStatus,
                     content: sanitizedContent,
@@ -111,7 +113,7 @@ const getInitialPages = (): Page[] => {
     }
     // Default initial data if localStorage is empty or parsing fails
     return [
-        { id: '1', title: 'Welcome to Notel', icon: 'sparkles', parentId: null, 
+        { id: '1', title: 'Welcome to Notel', icon: 'sparkles', parentId: null, position: 0,
           content: [
             { id: createBlockId(), type: 'heading1', content: 'Getting Started' },
             { id: createBlockId(), type: 'paragraph', content: 'Here are a few things to get you started. Check them off as you go!' },
@@ -123,13 +125,13 @@ const getInitialPages = (): Page[] => {
             { id: createBlockId(), type: 'paragraph', content: '' },
           ], 
           dueDate: new Date().toISOString(), status: 'in-progress' },
-        { id: '3', title: 'Project Ideas', icon: 'light-bulb', parentId: '1', 
+        { id: '3', title: 'Project Ideas', icon: 'light-bulb', parentId: '1', position: 0,
           content: [
             { id: createBlockId(), type: 'paragraph', content: '- Build a cool app with React and Tailwind.' },
             { id: createBlockId(), type: 'paragraph', content: '- Learn a new programming language.' }
           ],
           dueDate: null, status: 'todo' },
-        { id: '4', title: 'Finish Q2 report', icon: 'chart-bar', parentId: null, 
+        { id: '4', title: 'Finish Q2 report', icon: 'chart-bar', parentId: null, position: 1,
           content: [{ id: createBlockId(), type: 'paragraph', content: 'Review numbers and finalize the presentation slides.' }], 
           dueDate: new Date(new Date().setDate(new Date().getDate() + 1)).toISOString(), status: 'todo' },
     ];
@@ -268,6 +270,7 @@ const AppContent: React.FC = () => {
       title: initialData?.title || 'Untitled',
       icon: initialData?.icon || getRandomIcon(),
       parentId: initialData?.parentId || null,
+      position: initialData?.position || 0,
       dueDate: initialData?.dueDate || null,
       status: initialData?.status || null,
       content: initialData?.content || [{ id: createBlockId(), type: 'paragraph', content: '', checked: false }],
@@ -381,42 +384,43 @@ const AppContent: React.FC = () => {
     });
   }, [user]);
 
-  const handleMovePage = useCallback((draggedId: string, targetId: string, position: 'top' | 'bottom' | 'middle') => {
-    setPages(currentPages => {
-      const getAllDescendantIds = (pageId: string): Set<string> => {
-        const descendantIds = new Set<string>();
-        const findChildrenOf = (pId: string) => {
-          const children = currentPages.filter(p => p.parentId === pId);
-          children.forEach(child => {
-            descendantIds.add(child.id);
-            findChildrenOf(child.id);
-          });
-        };
-        findChildrenOf(pageId);
-        return descendantIds;
-      };
+  const handleMovePage = useCallback(async (draggedId: string, targetId: string, position: 'top' | 'bottom' | 'middle') => {
+    if (!user) return;
 
-      if (targetId === draggedId || getAllDescendantIds(draggedId).has(targetId)) {
-        return currentPages;
-      }
+    try {
+      ProductionDebug.logStateSync('page reorder initiated', {
+        draggedId,
+        targetId,
+        position,
+        timestamp: new Date().toISOString()
+      });
 
-      const draggedPage = currentPages.find(p => p.id === draggedId);
-      const otherPages = currentPages.filter(p => p.id !== draggedId);
-
-      if (!draggedPage) return currentPages;
-
-      let newPages: Page[];
-
-      if (position === 'middle') {
-        newPages = [...otherPages, { ...draggedPage, parentId: targetId }];
-      } else {
-        const targetPage = currentPages.find(p => p.id === targetId);
-        newPages = [...otherPages, { ...draggedPage, parentId: targetPage?.parentId || null }];
-      }
-
-      return newPages;
-    });
-  }, []);
+      // Update in database first for cross-device sync
+      await DatabaseService.reorderPages(draggedId, targetId, position);
+      
+      // Refresh pages from database to get updated positions
+      const updatedPages = await DatabaseService.getPages();
+      setPages(updatedPages);
+      
+      ProductionDebug.logStateSync('page reorder completed', {
+        draggedId,
+        targetId,
+        position,
+        newPageCount: updatedPages.length
+      });
+    } catch (error) {
+      console.error('Failed to reorder pages:', error);
+      ProductionDebug.logReactError(error as Error, {
+        context: 'page reordering',
+        draggedId,
+        targetId,
+        position
+      });
+      
+      // Show user-friendly error message
+      alert('Failed to reorder pages. Please try again.');
+    }
+  }, [user]);
 
   const handleSelectPage = useCallback((id: string) => {
     setActivePageId(id);

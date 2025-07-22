@@ -23,9 +23,10 @@ export interface Block {
 export interface Page {
   id:string;
   title: string;
-  content: Block[]; // Changed from string
-  icon: string; // icon identifier
+  icon: string; 
   parentId: string | null;
-  dueDate: string | null; // ISO 8601 date string
+  position: number;
+  content: Block[]; 
+  dueDate: string | null; 
   status: 'todo' | 'in-progress' | 'done' | null;
 }

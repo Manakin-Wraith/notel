@@ -16,6 +16,7 @@ export interface Database {
           title: string
           icon: string
           parent_id: string | null
+          position: number
           due_date: string | null
           status: 'todo' | 'in-progress' | 'done' | null
           created_at: string
@@ -27,6 +28,7 @@ export interface Database {
           title?: string
           icon?: string
           parent_id?: string | null
+          position?: number
           due_date?: string | null
           status?: 'todo' | 'in-progress' | 'done' | null
           created_at?: string
@@ -38,6 +40,7 @@ export interface Database {
           title?: string
           icon?: string
           parent_id?: string | null
+          position?: number
           due_date?: string | null
           status?: 'todo' | 'in-progress' | 'done' | null
           created_at?: string
