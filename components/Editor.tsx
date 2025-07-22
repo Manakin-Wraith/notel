@@ -1,7 +1,7 @@
 
 
 
-import React, { useState, useEffect, useRef, useLayoutEffect, useMemo, useTransition } from 'react';
+import React, { useState, useEffect, useRef, useLayoutEffect, useTransition } from 'react';
 import type { Page, Block, TableContent, TableRow } from '../types';
 import DatePicker from './DatePicker';
 import StatusPicker from './StatusPicker';
@@ -729,30 +729,7 @@ const Editor: React.FC<EditorProps> = ({ page, onUpdateTitle, onUpdateContent, o
     }
   };
 
-  // Move useMemo hook after renderBlock function to fix initialization error
-  const renderedContent = useMemo(() => {
-    const content: JSX.Element[] = [];
-    let i = 0;
-    while (i < blocks.length) {
-      const block = blocks[i];
-      if (block.type === 'bulleted-list-item') {
-        const listItems = [];
-        const firstItemId = block.id;
-        while (i < blocks.length && blocks[i].type === 'bulleted-list-item') {
-          listItems.push(renderBlock(blocks[i]));
-          i++;
-        }
-        content.push(<ul key={`list-wrapper-${firstItemId}`}>{listItems}</ul>);
-      } else {
-        const rendered = renderBlock(block);
-        if (rendered) {
-          content.push(rendered);
-        }
-        i++;
-      }
-    }
-    return content;
-  }, [blocks]);
+
 
   return (
     <main className="flex-1 p-4 sm:p-6 md:p-8 lg:p-12 overflow-y-auto" ref={editorRef} onDrop={handleDrop}>
@@ -802,69 +779,145 @@ const Editor: React.FC<EditorProps> = ({ page, onUpdateTitle, onUpdateContent, o
         </div>
         
         <div className="mt-4 space-y-1">
-          {renderedContent.map((content, index) => {
-             const key = content.key || index;
-             const currentBlock = blocks.find(b => `list-wrapper-${b.id}` === key || b.id === (content.props['data-block-id']));
-            
-             return (
-              <div
-                  key={key}
+          {blocks.map((block, blockIndex) => {
+            // Handle bulleted list items by grouping them
+            if (block.type === 'bulleted-list-item') {
+              // Check if this is the first item in a list group
+              const prevBlock = blocks[blockIndex - 1];
+              if (prevBlock && prevBlock.type === 'bulleted-list-item') {
+                // This item is part of an existing list, skip it (it will be rendered by the first item)
+                return null;
+              }
+              
+              // This is the first item in a list group, collect all consecutive list items
+              const listItems = [];
+              let listIndex = blockIndex;
+              while (listIndex < blocks.length && blocks[listIndex].type === 'bulleted-list-item') {
+                listItems.push(renderBlock(blocks[listIndex]));
+                listIndex++;
+              }
+              
+              return (
+                <div
+                  key={`list-wrapper-${block.id}`}
                   className="relative block-wrapper"
-                  data-block-wrapper-id={currentBlock?.id}
-                  onDragOver={(e) => currentBlock && handleDragOver(e, currentBlock.id)}
+                  data-block-wrapper-id={block.id}
+                  onDragOver={(e) => handleDragOver(e, block.id)}
                   onDragLeave={() => setDropIndicator(null)}
-              >
-                  {dropIndicator && dropIndicator.blockId === currentBlock?.id && dropIndicator.position === 'before' && (
-                      <div className="absolute -top-1 left-0 w-full h-1 bg-purple-500 rounded-full z-10" />
-                  )}
-
-                  <div className="relative group flex items-start gap-1">
-                      <div className="block-controls flex items-center h-8">
-                          {currentBlock && currentBlock.type !== 'divider' && (
-                            <>
-                              <button
-                                  onMouseDown={(e) => {
-                                      e.preventDefault();
-                                      currentBlock && handleDeleteBlock(currentBlock.id);
-                                  }}
-                                  className="p-1 text-gray-500 hover:text-red-400 rounded"
-                                  aria-label="Delete block"
-                              >
-                                  <TrashIcon className="w-4 h-4" />
-                              </button>
-                              <button
-                                  draggable
-                                  onMouseDown={(e) => e.preventDefault()}
-                                  onDragStart={(e) => currentBlock && handleDragStart(e, currentBlock.id)}
-                                  className="p-1 text-gray-500 hover:text-gray-300 rounded cursor-grab active:cursor-grabbing"
-                                  aria-label="Drag to reorder"
-                              >
-                                  <DragHandleIcon className="w-4 h-4" />
-                              </button>
-                            </>
-                          )}
-                      </div>
-                      <div className={`flex-1 ${draggedBlockId === currentBlock?.id ? 'opacity-30' : ''}`}>
-                          {content}
-                      </div>
-                  </div>
-
-                  {dropIndicator && dropIndicator.blockId === currentBlock?.id && dropIndicator.position === 'after' && (
-                      <div className="absolute -bottom-1 left-0 w-full h-1 bg-purple-500 rounded-full z-10" />
+                >
+                  {dropIndicator && dropIndicator.blockId === block.id && dropIndicator.position === 'before' && (
+                    <div className="absolute -top-1 left-0 w-full h-1 bg-purple-500 rounded-full z-10" />
                   )}
                   
-                  {currentBlock && menuState.open && menuState.blockId === currentBlock.id && (
-                      <BlockTypeMenu 
-                          onSelect={(newType) => handleBlockTypeChange(currentBlock.id, newType)} 
-                          onClose={() => setMenuState({ open: false, blockId: null })} 
-                      />
+                  <div className="relative group flex items-start gap-1">
+                    <div className="block-controls flex items-center h-8">
+                      {block.type !== 'divider' && (
+                        <>
+                          <button
+                            onMouseDown={(e) => {
+                              e.preventDefault();
+                              handleDeleteBlock(block.id);
+                            }}
+                            className="p-1 text-gray-500 hover:text-red-400 rounded"
+                            aria-label="Delete block"
+                          >
+                            <TrashIcon className="w-4 h-4" />
+                          </button>
+                          <button
+                            draggable
+                            onMouseDown={(e) => e.preventDefault()}
+                            onDragStart={(e) => handleDragStart(e, block.id)}
+                            className="p-1 text-gray-500 hover:text-gray-300 rounded cursor-grab active:cursor-grabbing"
+                            aria-label="Drag to reorder"
+                          >
+                            <DragHandleIcon className="w-4 h-4" />
+                          </button>
+                        </>
+                      )}
+                    </div>
+                    <div className={`flex-1 ${draggedBlockId === block.id ? 'opacity-30' : ''}`}>
+                      <ul>{listItems}</ul>
+                    </div>
+                  </div>
+
+                  {dropIndicator && dropIndicator.blockId === block.id && dropIndicator.position === 'after' && (
+                    <div className="absolute -bottom-1 left-0 w-full h-1 bg-purple-500 rounded-full z-10" />
                   )}
+                  
+                  {menuState.open && menuState.blockId === block.id && (
+                    <BlockTypeMenu 
+                      onSelect={(newType) => handleBlockTypeChange(block.id, newType)} 
+                      onClose={() => setMenuState({ open: false, blockId: null })} 
+                    />
+                  )}
+                </div>
+              );
+            }
+            
+            // Handle individual blocks (non-list items)
+            const rendered = renderBlock(block);
+            if (!rendered) return null;
+            
+            return (
+              <div
+                key={block.id}
+                className="relative block-wrapper"
+                data-block-wrapper-id={block.id}
+                onDragOver={(e) => handleDragOver(e, block.id)}
+                onDragLeave={() => setDropIndicator(null)}
+              >
+                {dropIndicator && dropIndicator.blockId === block.id && dropIndicator.position === 'before' && (
+                  <div className="absolute -top-1 left-0 w-full h-1 bg-purple-500 rounded-full z-10" />
+                )}
+                
+                <div className="relative group flex items-start gap-1">
+                  <div className="block-controls flex items-center h-8">
+                    {block.type !== 'divider' && (
+                      <>
+                        <button
+                          onMouseDown={(e) => {
+                            e.preventDefault();
+                            handleDeleteBlock(block.id);
+                          }}
+                          className="p-1 text-gray-500 hover:text-red-400 rounded"
+                          aria-label="Delete block"
+                        >
+                          <TrashIcon className="w-4 h-4" />
+                        </button>
+                        <button
+                          draggable
+                          onMouseDown={(e) => e.preventDefault()}
+                          onDragStart={(e) => handleDragStart(e, block.id)}
+                          className="p-1 text-gray-500 hover:text-gray-300 rounded cursor-grab active:cursor-grabbing"
+                          aria-label="Drag to reorder"
+                        >
+                          <DragHandleIcon className="w-4 h-4" />
+                        </button>
+                      </>
+                    )}
+                  </div>
+                  <div className={`flex-1 ${draggedBlockId === block.id ? 'opacity-30' : ''}`}>
+                    {rendered}
+                  </div>
+                </div>
+
+                {dropIndicator && dropIndicator.blockId === block.id && dropIndicator.position === 'after' && (
+                  <div className="absolute -bottom-1 left-0 w-full h-1 bg-purple-500 rounded-full z-10" />
+                )}
+                
+                {menuState.open && menuState.blockId === block.id && (
+                  <BlockTypeMenu 
+                    onSelect={(newType) => handleBlockTypeChange(block.id, newType)} 
+                    onClose={() => setMenuState({ open: false, blockId: null })} 
+                  />
+                )}
               </div>
-          )})}
+            );
+          })}
         </div>
       </div>
     </main>
   );
 };
-
+{{ ... }}
 export default Editor;
