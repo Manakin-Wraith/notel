@@ -89,26 +89,38 @@ export class DatabaseService {
     const user = await getCurrentUser()
     if (!user) throw new Error('User not authenticated')
 
+    // Debug logging
+    const pageInsert = pageToDbInsert(page, user.id)
+    console.log('Creating page with data:', pageInsert)
+
     // Insert page
     const { data: pageData, error: pageError } = await supabase
       .from('pages')
-      .insert(pageToDbInsert(page, user.id))
+      .insert(pageInsert)
       .select()
       .single()
 
-    if (pageError) throw pageError
+    if (pageError) {
+      console.error('Page creation error:', pageError)
+      throw pageError
+    }
 
     // Insert blocks
     if (page.content.length > 0) {
       const blockInserts = page.content.map((block, index) => 
         blockToDbInsert(block, page.id, index)
       )
+      
+      console.log('Creating blocks with data:', blockInserts)
 
       const { error: blocksError } = await supabase
         .from('blocks')
         .insert(blockInserts)
 
-      if (blocksError) throw blocksError
+      if (blocksError) {
+        console.error('Blocks creation error:', blocksError)
+        throw blocksError
+      }
     }
 
     return dbPageToPage(pageData, page.content)
@@ -181,13 +193,31 @@ export class DatabaseService {
   }
 
   // Sync local data to Supabase (for migration)
-  static async syncLocalData(pages: Page[]): Promise<void> {
+  static async syncLocalData(): Promise<void> {
     const user = await getCurrentUser()
-    if (!user) throw new Error('User not authenticated')
+    if (!user) return
 
-    for (const page of pages) {
+    // Get pages from localStorage
+    const savedPages = localStorage.getItem('glasstion-pages')
+    if (!savedPages) return
+    
+    let localPages: Page[]
+    try {
+      localPages = JSON.parse(savedPages)
+    } catch (error) {
+      console.error('Failed to parse localStorage pages:', error)
+      return
+    }
+    
+    if (localPages.length === 0) return
+
+    console.log('Syncing local data to Supabase...', localPages)
+    
+    for (const page of localPages) {
       try {
+        console.log(`Attempting to sync page ${page.id}:`, page)
         await this.createPage(page)
+        console.log(`Synced page: ${page.title}`)
       } catch (error) {
         console.error(`Failed to sync page ${page.id}:`, error)
       }

@@ -509,6 +509,31 @@ const Editor: React.FC<EditorProps> = ({ page, onUpdateTitle, onUpdateContent, o
   
   const formattedDate = page?.dueDate ? new Date(page.dueDate).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }) : null;
 
+  // Move useMemo hook before early return to fix React Hooks order
+  const renderedContent = useMemo(() => {
+    const content: JSX.Element[] = [];
+    let i = 0;
+    while (i < blocks.length) {
+      const block = blocks[i];
+      if (block.type === 'bulleted-list-item') {
+        const listItems = [];
+        const firstItemId = block.id;
+        while (i < blocks.length && blocks[i].type === 'bulleted-list-item') {
+          listItems.push(renderBlock(blocks[i]));
+          i++;
+        }
+        content.push(<ul key={`list-wrapper-${firstItemId}`}>{listItems}</ul>);
+      } else {
+        const rendered = renderBlock(block);
+        if (rendered) {
+          content.push(rendered);
+        }
+        i++;
+      }
+    }
+    return content;
+  }, [blocks, hoveredTablePos]);
+
   if (!page) {
     return (
       <div className="flex-1 flex items-center justify-center text-gray-500 p-8">
@@ -727,29 +752,7 @@ const Editor: React.FC<EditorProps> = ({ page, onUpdateTitle, onUpdateContent, o
     }
   };
 
-  const renderedContent = useMemo(() => {
-    const content: JSX.Element[] = [];
-    let i = 0;
-    while (i < blocks.length) {
-      const block = blocks[i];
-      if (block.type === 'bulleted-list-item') {
-        const listItems = [];
-        const firstItemId = block.id;
-        while (i < blocks.length && blocks[i].type === 'bulleted-list-item') {
-          listItems.push(renderBlock(blocks[i]));
-          i++;
-        }
-        content.push(<ul key={`list-wrapper-${firstItemId}`}>{listItems}</ul>);
-      } else {
-        const rendered = renderBlock(block);
-        if (rendered) {
-          content.push(rendered);
-        }
-        i++;
-      }
-    }
-    return content;
-  }, [blocks, hoveredTablePos]);
+
 
   return (
     <main className="flex-1 p-4 sm:p-6 md:p-8 lg:p-12 overflow-y-auto" ref={editorRef} onDrop={handleDrop}>
