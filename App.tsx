@@ -190,10 +190,27 @@ const AppContent: React.FC = () => {
 
   // Save to Supabase whenever pages change (if user is authenticated)
   useEffect(() => {
-    if (!user || loading) return;
+    if (!user || loading || pages.length === 0) return;
     
-    // Also save to localStorage as backup
-    localStorage.setItem('glasstion-pages', JSON.stringify(pages));
+    const saveToSupabase = async () => {
+      try {
+        setSyncing(true);
+        // Save to localStorage as backup
+        localStorage.setItem('glasstion-pages', JSON.stringify(pages));
+        
+        // Note: Individual page updates are handled by the handler functions
+        // This effect is mainly for backup and initial sync
+        console.log('Data synced to local storage');
+      } catch (error) {
+        console.error('Sync error:', error);
+      } finally {
+        setSyncing(false);
+      }
+    };
+    
+    // Debounce the save operation
+    const timeoutId = setTimeout(saveToSupabase, 1000);
+    return () => clearTimeout(timeoutId);
   }, [pages, user, loading]);
 
   // Listen for Cmd/Ctrl+K to open command palette
