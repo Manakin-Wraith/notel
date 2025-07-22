@@ -59,6 +59,8 @@ export class DatabaseService {
       .from('pages')
       .select('*')
       .eq('user_id', user.id)
+      .order('parent_id', { ascending: true, nullsFirst: true })
+      .order('position', { ascending: true })
       .order('created_at', { ascending: true })
 
     if (pagesError) throw pagesError

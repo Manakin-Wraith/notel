@@ -421,28 +421,40 @@ const AppContent: React.FC = () => {
       return newPages;
     });
 
-    // Then, try to sync to database for cross-device functionality (non-blocking)
+    // Then, sync to database with proper position values for persistence
     if (user) {
       try {
-        // Simple database update - just update the parentId, don't worry about complex positioning
-        const draggedPage = pages.find(p => p.id === draggedId);
-        if (draggedPage) {
-          let newParentId: string | null;
-          if (position === 'middle') {
-            newParentId = targetId;
-          } else {
-            const targetPage = pages.find(p => p.id === targetId);
-            newParentId = targetPage?.parentId || null;
+        // Wait a bit for the local state to update, then save to database
+        setTimeout(async () => {
+          try {
+            // Get current pages state and calculate positions
+            const currentPages = pages;
+            const pagesByParent = new Map<string | null, Page[]>();
+            
+            // Group pages by parent
+            currentPages.forEach(page => {
+              const parentKey = page.parentId;
+              if (!pagesByParent.has(parentKey)) {
+                pagesByParent.set(parentKey, []);
+              }
+              pagesByParent.get(parentKey)!.push(page);
+            });
+            
+            // Find the dragged page and calculate its new position
+            const draggedPage = currentPages.find(p => p.id === draggedId);
+            if (draggedPage) {
+              const siblings = pagesByParent.get(draggedPage.parentId) || [];
+              const newPosition = siblings.indexOf(draggedPage);
+              
+              // Update the page with the new position
+              const updatedPage = { ...draggedPage, position: newPosition };
+              await DatabaseService.updatePage(updatedPage);
+            }
+          } catch (error) {
+            console.warn('Failed to save page position:', error);
           }
-          
-          // Only update if parentId actually changed
-          if (draggedPage.parentId !== newParentId) {
-            const updatedPage = { ...draggedPage, parentId: newParentId };
-            await DatabaseService.updatePage(updatedPage);
-          }
-        }
+        }, 100); // Small delay to ensure state has updated
       } catch (error) {
-        // Silently fail - local reordering already worked, so don't disrupt the user
         console.warn('Cross-device sync failed for page reorder:', error);
       }
     }
