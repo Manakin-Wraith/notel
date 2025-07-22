@@ -64,6 +64,14 @@ export class DatabaseService {
       .order('created_at', { ascending: true })
 
     if (pagesError) throw pagesError
+    
+    // Debug: Log the raw data from database
+    console.log('Raw pages from database:', pagesData.map(p => ({ 
+      id: p.id, 
+      title: p.title, 
+      parent_id: p.parent_id, 
+      position: p.position 
+    })))
 
     // Fetch blocks for all pages
     const pageIds = pagesData.map(p => p.id)
@@ -82,10 +90,21 @@ export class DatabaseService {
       return acc
     }, {} as Record<string, Block[]>)
 
-    // Convert pages with their blocks
-    return pagesData.map(dbPage => 
-      dbPageToPage(dbPage, blocksByPageId[dbPage.id] || [])
-    )
+    // Convert to app format
+    const pages = pagesData.map(dbPage => {
+      const pageBlocks = blocksByPageId[dbPage.id] || []
+      return dbPageToPage(dbPage, pageBlocks)
+    })
+
+    // Debug: Log the final converted pages
+    console.log('Final converted pages:', pages.map(p => ({ 
+      id: p.id, 
+      title: p.title, 
+      parentId: p.parentId, 
+      position: p.position 
+    })))
+
+    return pages
   }
 
   // Create a new page
