@@ -164,9 +164,9 @@ const AppContent: React.FC = () => {
         setLoading(true);
         const supabasePages = await DatabaseService.getPages();
         
-        // Check if user has existing data in Supabase
+        // Always prioritize database data over localStorage
         if (supabasePages.length === 0) {
-          // Try to migrate localStorage data
+          // Try to migrate localStorage data only if no database data exists
           const localPages = getInitialPages();
           if (localPages.length > 0) {
             setSyncing(true);
@@ -179,7 +179,11 @@ const AppContent: React.FC = () => {
             setPages([]);
           }
         } else {
+          // Database has data - use it and clear localStorage to prevent conflicts
+          console.log('Loading pages from database with positions preserved');
           setPages(supabasePages);
+          // Clear localStorage to prevent it from overriding database order
+          localStorage.removeItem('glasstion-pages');
         }
       } catch (error) {
         console.error('Failed to load data:', error);
