@@ -384,7 +384,8 @@ const AppContent: React.FC = () => {
     });
   }, [user]);
 
-  const handleMovePage = useCallback((draggedId: string, targetId: string, position: 'top' | 'bottom' | 'middle') => {
+  const handleMovePage = useCallback(async (draggedId: string, targetId: string, position: 'top' | 'bottom' | 'middle') => {
+    // First, update local state immediately (this keeps the working behavior)
     setPages(currentPages => {
       const getAllDescendantIds = (pageId: string): Set<string> => {
         const descendantIds = new Set<string>();
@@ -419,7 +420,33 @@ const AppContent: React.FC = () => {
 
       return newPages;
     });
-  }, []);
+
+    // Then, try to sync to database for cross-device functionality (non-blocking)
+    if (user) {
+      try {
+        // Simple database update - just update the parentId, don't worry about complex positioning
+        const draggedPage = pages.find(p => p.id === draggedId);
+        if (draggedPage) {
+          let newParentId: string | null;
+          if (position === 'middle') {
+            newParentId = targetId;
+          } else {
+            const targetPage = pages.find(p => p.id === targetId);
+            newParentId = targetPage?.parentId || null;
+          }
+          
+          // Only update if parentId actually changed
+          if (draggedPage.parentId !== newParentId) {
+            const updatedPage = { ...draggedPage, parentId: newParentId };
+            await DatabaseService.updatePage(updatedPage);
+          }
+        }
+      } catch (error) {
+        // Silently fail - local reordering already worked, so don't disrupt the user
+        console.warn('Cross-device sync failed for page reorder:', error);
+      }
+    }
+  }, [user, pages]);
 
   const handleSelectPage = useCallback((id: string) => {
     setActivePageId(id);
