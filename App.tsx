@@ -12,6 +12,8 @@ import { ICONS } from './components/icons/icon-constants';
 import HamburgerIcon from './components/icons/HamburgerIcon';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { DatabaseService } from './lib/database';
+import { ProductionDebug } from './lib/production-debug';
+import ProductionErrorBoundary from './components/ProductionErrorBoundary';
 
 const createBlockId = () => `${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
 
@@ -166,7 +168,8 @@ const AppContent: React.FC = () => {
           const localPages = getInitialPages();
           if (localPages.length > 0) {
             setSyncing(true);
-            await DatabaseService.syncLocalData(localPages);
+            ProductionDebug.logStateSync('localStorage migration', { pageCount: localPages.length });
+            await DatabaseService.syncLocalData();
             const migratedPages = await DatabaseService.getPages();
             setPages(migratedPages);
             setSyncing(false);
@@ -560,9 +563,11 @@ const AppContent: React.FC = () => {
 
 const App: React.FC = () => {
   return (
-    <AuthProvider>
-      <AppContent />
-    </AuthProvider>
+    <ProductionErrorBoundary>
+      <AuthProvider>
+        <AppContent />
+      </AuthProvider>
+    </ProductionErrorBoundary>
   );
 };
 

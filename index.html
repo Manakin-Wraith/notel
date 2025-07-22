@@ -8,7 +8,20 @@
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <link rel="icon" type="image/x-icon" href="/favicon.ico" />
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js" onerror="console.warn('Babel failed to load from primary CDN')"></script>
+    <script>
+        // Fallback Babel loading with retry mechanism
+        if (typeof Babel === 'undefined') {
+            console.warn('Babel not loaded, attempting fallback...');
+            const script = document.createElement('script');
+            script.src = 'https://cdn.jsdelivr.net/npm/@babel/standalone@7.23.5/babel.min.js';
+            script.onerror = () => {
+                console.error('Babel fallback also failed to load');
+                window.BabelLoadError = true;
+            };
+            document.head.appendChild(script);
+        }
+    </script>
 <script type="importmap">
 {
   "imports": {
