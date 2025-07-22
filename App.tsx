@@ -385,7 +385,9 @@ const AppContent: React.FC = () => {
   }, [user]);
 
   const handleMovePage = useCallback(async (draggedId: string, targetId: string, position: 'top' | 'bottom' | 'middle') => {
-    // First, update local state immediately (this keeps the working behavior)
+    // First, update local state immediately and capture the new state for database sync
+    let updatedPagesForSync: Page[] = [];
+    
     setPages(currentPages => {
       const getAllDescendantIds = (pageId: string): Set<string> => {
         const descendantIds = new Set<string>();
@@ -418,47 +420,53 @@ const AppContent: React.FC = () => {
         newPages = [...otherPages, { ...draggedPage, parentId: targetPage?.parentId || null }];
       }
 
-      return newPages;
+      // Calculate positions for all pages and store for database sync
+      const pagesByParent = new Map<string | null, Page[]>();
+      newPages.forEach(page => {
+        const parentKey = page.parentId;
+        if (!pagesByParent.has(parentKey)) {
+          pagesByParent.set(parentKey, []);
+        }
+        pagesByParent.get(parentKey)!.push(page);
+      });
+      
+      // Assign position values within each parent group
+      updatedPagesForSync = newPages.map(page => {
+        const siblings = pagesByParent.get(page.parentId) || [];
+        const newPosition = siblings.indexOf(page);
+        return { ...page, position: newPosition };
+      });
+
+      return updatedPagesForSync;
     });
 
     // Then, sync to database with proper position values for persistence
-    if (user) {
+    if (user && updatedPagesForSync.length > 0) {
       try {
-        // Wait a bit for the local state to update, then save to database
-        setTimeout(async () => {
-          try {
-            // Get current pages state and calculate positions
-            const currentPages = pages;
-            const pagesByParent = new Map<string | null, Page[]>();
-            
-            // Group pages by parent
-            currentPages.forEach(page => {
-              const parentKey = page.parentId;
-              if (!pagesByParent.has(parentKey)) {
-                pagesByParent.set(parentKey, []);
-              }
-              pagesByParent.get(parentKey)!.push(page);
-            });
-            
-            // Find the dragged page and calculate its new position
-            const draggedPage = currentPages.find(p => p.id === draggedId);
-            if (draggedPage) {
-              const siblings = pagesByParent.get(draggedPage.parentId) || [];
-              const newPosition = siblings.indexOf(draggedPage);
-              
-              // Update the page with the new position
-              const updatedPage = { ...draggedPage, position: newPosition };
-              await DatabaseService.updatePage(updatedPage);
+        // Find the dragged page and update it in the database
+        const draggedPage = updatedPagesForSync.find(p => p.id === draggedId);
+        if (draggedPage) {
+          console.log('Saving page position:', { id: draggedPage.id, parentId: draggedPage.parentId, position: draggedPage.position });
+          await DatabaseService.updatePage(draggedPage);
+          
+          // Also update any other pages in the same parent group to ensure consistent ordering
+          const affectedPages = updatedPagesForSync.filter(p => 
+            p.parentId === draggedPage.parentId && p.id !== draggedPage.id
+          );
+          
+          for (const page of affectedPages) {
+            try {
+              await DatabaseService.updatePage(page);
+            } catch (error) {
+              console.warn('Failed to update sibling page position:', page.id, error);
             }
-          } catch (error) {
-            console.warn('Failed to save page position:', error);
           }
-        }, 100); // Small delay to ensure state has updated
+        }
       } catch (error) {
         console.warn('Cross-device sync failed for page reorder:', error);
       }
     }
-  }, [user, pages]);
+  }, [user]);
 
   const handleSelectPage = useCallback((id: string) => {
     setActivePageId(id);
