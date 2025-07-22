@@ -204,12 +204,15 @@ const AppContent: React.FC = () => {
     const saveToSupabase = async () => {
       try {
         setSyncing(true);
-        // Save to localStorage as backup
-        localStorage.setItem('glasstion-pages', JSON.stringify(pages));
         
-        // Note: Individual page updates are handled by the handler functions
-        // This effect is mainly for backup and initial sync
-        console.log('Data synced to local storage');
+        // Only save to localStorage if user is NOT authenticated
+        // When authenticated, database is the source of truth
+        if (!user) {
+          localStorage.setItem('glasstion-pages', JSON.stringify(pages));
+          console.log('Data synced to local storage (offline mode)');
+        } else {
+          console.log('Skipping localStorage sync - using database persistence');
+        }
       } catch (error) {
         console.error('Sync error:', error);
       } finally {
