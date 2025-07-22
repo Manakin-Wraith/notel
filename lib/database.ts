@@ -50,6 +50,32 @@ const blockToDbInsert = (block: Block, pageId: string, position: number): BlockI
 })
 
 export class DatabaseService {
+  // Test if position column exists in database
+  static async testPositionColumn(): Promise<void> {
+    const user = await getCurrentUser()
+    if (!user) throw new Error('User not authenticated')
+
+    try {
+      console.log('Testing if position column exists in database...')
+      
+      // Try to select position column specifically
+      const { data, error } = await supabase
+        .from('pages')
+        .select('id, title, position')
+        .eq('user_id', user.id)
+        .limit(1)
+      
+      if (error) {
+        console.error('Position column test failed:', error)
+        console.error('This suggests the position column does not exist in your Supabase database!')
+      } else {
+        console.log('Position column test successful:', data)
+        console.log('Position column exists in database')
+      }
+    } catch (error) {
+      console.error('Database schema test error:', error)
+    }
+  }
   // Fetch all pages for current user
   static async getPages(): Promise<Page[]> {
     const user = await getCurrentUser()
@@ -66,12 +92,16 @@ export class DatabaseService {
     if (pagesError) throw pagesError
     
     // Debug: Log the raw data from database
-    console.log('Raw pages from database:', pagesData.map(p => ({ 
+    console.log('Raw pages from database:');
+    pagesData.forEach(p => {
+      console.log(`  ${p.title}: parent_id=${p.parent_id}, position=${p.position}`);
+    });
+    console.log('Full raw data:', pagesData.map(p => ({ 
       id: p.id, 
       title: p.title, 
       parent_id: p.parent_id, 
       position: p.position 
-    })))
+    })));
 
     // Fetch blocks for all pages
     const pageIds = pagesData.map(p => p.id)
@@ -97,12 +127,16 @@ export class DatabaseService {
     })
 
     // Debug: Log the final converted pages
-    console.log('Final converted pages:', pages.map(p => ({ 
+    console.log('Final converted pages:');
+    pages.forEach(p => {
+      console.log(`  ${p.title}: parentId=${p.parentId}, position=${p.position}`);
+    });
+    console.log('Full converted data:', pages.map(p => ({ 
       id: p.id, 
       title: p.title, 
       parentId: p.parentId, 
       position: p.position 
-    })))
+    })));
 
     return pages
   }
@@ -154,21 +188,34 @@ export class DatabaseService {
     const user = await getCurrentUser()
     if (!user) throw new Error('User not authenticated')
 
-    // Update page
+    console.log('Attempting to update page with position:', {
+      id: page.id,
+      title: page.title,
+      parentId: page.parentId,
+      position: page.position
+    })
+
+    const updateData = {
+      title: page.title,
+      icon: page.icon,
+      parent_id: page.parentId,
+      position: page.position, // Explicitly include position
+      due_date: page.dueDate,
+      status: page.status,
+      updated_at: new Date().toISOString()
+    }
+
+    console.log('Update data being sent to Supabase:', updateData)
+
     const { data: pageData, error: pageError } = await supabase
       .from('pages')
-      .update({
-        title: page.title,
-        icon: page.icon,
-        parent_id: page.parentId,
-        due_date: page.dueDate,
-        status: page.status,
-        updated_at: new Date().toISOString()
-      })
+      .update(updateData)
       .eq('id', page.id)
       .eq('user_id', user.id)
       .select()
       .single()
+
+    console.log('Supabase update response:', { data: pageData, error: pageError })
 
     if (pageError) throw pageError
 

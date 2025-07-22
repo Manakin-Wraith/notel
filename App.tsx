@@ -164,6 +164,9 @@ const AppContent: React.FC = () => {
         setLoading(true);
         const supabasePages = await DatabaseService.getPages();
         
+        // Test database schema first
+        await DatabaseService.testPositionColumn();
+        
         // Always prioritize database data over localStorage
         if (supabasePages.length === 0) {
           // Try to migrate localStorage data only if no database data exists
