@@ -259,22 +259,29 @@ export class DatabaseService {
       throw new Error('Page not found')
     }
 
-    // Prevent moving a page into its own descendants
-    const getAllDescendantIds = (pageId: string): Set<string> => {
-      const descendantIds = new Set<string>()
-      const findChildrenOf = (pId: string) => {
-        const children = pages.filter(p => p.parentId === pId)
-        children.forEach(child => {
-          descendantIds.add(child.id)
-          findChildrenOf(child.id)
-        })
-      }
-      findChildrenOf(pageId)
-      return descendantIds
+    // Prevent moving a page into itself
+    if (targetId === draggedId) {
+      throw new Error('Cannot move page into itself')
     }
 
-    if (targetId === draggedId || getAllDescendantIds(draggedId).has(targetId)) {
-      throw new Error('Cannot move page into itself or its descendants')
+    // Only check descendants when moving as child (position === 'middle')
+    if (position === 'middle') {
+      const getAllDescendantIds = (pageId: string): Set<string> => {
+        const descendantIds = new Set<string>()
+        const findChildrenOf = (pId: string) => {
+          const children = pages.filter(p => p.parentId === pId)
+          children.forEach(child => {
+            descendantIds.add(child.id)
+            findChildrenOf(child.id)
+          })
+        }
+        findChildrenOf(pageId)
+        return descendantIds
+      }
+
+      if (getAllDescendantIds(draggedId).has(targetId)) {
+        throw new Error('Cannot move page into its descendants')
+      }
     }
 
     let newParentId: string | null

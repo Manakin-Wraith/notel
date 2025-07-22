@@ -384,43 +384,42 @@ const AppContent: React.FC = () => {
     });
   }, [user]);
 
-  const handleMovePage = useCallback(async (draggedId: string, targetId: string, position: 'top' | 'bottom' | 'middle') => {
-    if (!user) return;
+  const handleMovePage = useCallback((draggedId: string, targetId: string, position: 'top' | 'bottom' | 'middle') => {
+    setPages(currentPages => {
+      const getAllDescendantIds = (pageId: string): Set<string> => {
+        const descendantIds = new Set<string>();
+        const findChildrenOf = (pId: string) => {
+          const children = currentPages.filter(p => p.parentId === pId);
+          children.forEach(child => {
+            descendantIds.add(child.id);
+            findChildrenOf(child.id);
+          });
+        };
+        findChildrenOf(pageId);
+        return descendantIds;
+      };
 
-    try {
-      ProductionDebug.logStateSync('page reorder initiated', {
-        draggedId,
-        targetId,
-        position,
-        timestamp: new Date().toISOString()
-      });
+      if (targetId === draggedId || getAllDescendantIds(draggedId).has(targetId)) {
+        return currentPages;
+      }
 
-      // Update in database first for cross-device sync
-      await DatabaseService.reorderPages(draggedId, targetId, position);
-      
-      // Refresh pages from database to get updated positions
-      const updatedPages = await DatabaseService.getPages();
-      setPages(updatedPages);
-      
-      ProductionDebug.logStateSync('page reorder completed', {
-        draggedId,
-        targetId,
-        position,
-        newPageCount: updatedPages.length
-      });
-    } catch (error) {
-      console.error('Failed to reorder pages:', error);
-      ProductionDebug.logReactError(error as Error, {
-        context: 'page reordering',
-        draggedId,
-        targetId,
-        position
-      });
-      
-      // Show user-friendly error message
-      alert('Failed to reorder pages. Please try again.');
-    }
-  }, [user]);
+      const draggedPage = currentPages.find(p => p.id === draggedId);
+      const otherPages = currentPages.filter(p => p.id !== draggedId);
+
+      if (!draggedPage) return currentPages;
+
+      let newPages: Page[];
+
+      if (position === 'middle') {
+        newPages = [...otherPages, { ...draggedPage, parentId: targetId }];
+      } else {
+        const targetPage = currentPages.find(p => p.id === targetId);
+        newPages = [...otherPages, { ...draggedPage, parentId: targetPage?.parentId || null }];
+      }
+
+      return newPages;
+    });
+  }, []);
 
   const handleSelectPage = useCallback((id: string) => {
     setActivePageId(id);
