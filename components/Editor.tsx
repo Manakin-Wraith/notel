@@ -811,8 +811,7 @@ const Editor: React.FC<EditorProps> = ({ page, onUpdateTitle, onUpdateContent, o
                   
                   <div className="relative group flex items-start gap-1">
                     <div className="block-controls flex items-center h-8">
-                      {block.type !== 'divider' && (
-                        <>
+                      <>
                           <button
                             onMouseDown={(e) => {
                               e.preventDefault();
@@ -833,7 +832,6 @@ const Editor: React.FC<EditorProps> = ({ page, onUpdateTitle, onUpdateContent, o
                             <DragHandleIcon className="w-4 h-4" />
                           </button>
                         </>
-                      )}
                     </div>
                     <div className={`flex-1 ${draggedBlockId === block.id ? 'opacity-30' : ''}`}>
                       <ul>{listItems}</ul>
