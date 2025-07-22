@@ -22,19 +22,19 @@ const dbPageToPage = (dbPage: PageRow, blocks: Block[] = []): Page => ({
 const dbBlockToBlock = (dbBlock: BlockRow): Block => ({
   id: dbBlock.id,
   type: dbBlock.type as Block['type'],
-  content: dbBlock.content as string | any,
-  checked: dbBlock.checked
+  content: typeof dbBlock.content === 'string' ? JSON.parse(dbBlock.content) : dbBlock.content,
+  checked: dbBlock.checked || false
 })
 
 // Convert app Page to database insert
 const pageToDbInsert = (page: Page, userId: string): PageInsert => ({
   id: page.id,
   user_id: userId,
-  title: page.title,
-  icon: page.icon,
-  parent_id: page.parentId,
-  due_date: page.dueDate,
-  status: page.status
+  title: page.title || 'Untitled',
+  icon: page.icon || 'document-text',
+  parent_id: page.parentId || null,
+  due_date: page.dueDate ? new Date(page.dueDate).toISOString() : null,
+  status: page.status || null
 })
 
 // Convert app Block to database insert
@@ -42,9 +42,9 @@ const blockToDbInsert = (block: Block, pageId: string, position: number): BlockI
   id: block.id,
   page_id: pageId,
   type: block.type,
-  content: block.content as any, // Cast to any for Json compatibility
+  content: JSON.stringify(block.content), // Ensure content is properly serialized
   position,
-  checked: block.checked
+  checked: block.checked || false
 })
 
 export class DatabaseService {

@@ -304,79 +304,79 @@ const AppContent: React.FC = () => {
   }, [activePageId, user]);
 
   const handleUpdatePageTitle = useCallback(async (pageId: string, title: string) => {
-    const updatedPages = pages.map(p => p.id === pageId ? { ...p, title } : p);
-    const updatedPage = updatedPages.find(p => p.id === pageId);
-
-    if (user && updatedPage) {
-      try {
-        await DatabaseService.updatePage(updatedPage);
-      } catch (error) {
-        console.error('Failed to update page title:', error);
+    setPages(prev => {
+      const updatedPages = prev.map(p => p.id === pageId ? { ...p, title } : p);
+      const updatedPage = updatedPages.find(p => p.id === pageId);
+      
+      if (user && updatedPage) {
+        DatabaseService.updatePage(updatedPage).catch(error => {
+          console.error('Failed to update page title:', error);
+        });
       }
-    }
-
-    setPages(updatedPages);
-  }, [pages, user]);
+      
+      return updatedPages;
+    });
+  }, [user]);
 
   const handleUpdatePageContent = useCallback(async (pageId: string, content: Block[]) => {
-    const updatedPages = pages.map(p => p.id === pageId ? { ...p, content } : p);
-    const updatedPage = updatedPages.find(p => p.id === pageId);
-
-    if (user && updatedPage) {
-      try {
-        await DatabaseService.updatePage(updatedPage);
-      } catch (error) {
-        console.error('Failed to update page content:', error);
+    setPages(prev => {
+      const updatedPages = prev.map(p => p.id === pageId ? { ...p, content } : p);
+      const updatedPage = updatedPages.find(p => p.id === pageId);
+      
+      if (user && updatedPage) {
+        DatabaseService.updatePage(updatedPage).catch(error => {
+          console.error('Failed to update page content:', error);
+        });
       }
-    }
-
-    setPages(updatedPages);
-  }, [pages, user]);
+      
+      return updatedPages;
+    });
+  }, [user]);
 
   const handleUpdatePageIcon = useCallback(async (pageId: string, icon: string) => {
-    const updatedPages = pages.map(p => p.id === pageId ? { ...p, icon } : p);
-    const updatedPage = updatedPages.find(p => p.id === pageId);
-
-    if (user && updatedPage) {
-      try {
-        await DatabaseService.updatePage(updatedPage);
-      } catch (error) {
-        console.error('Failed to update page icon:', error);
+    setPages(prev => {
+      const updatedPages = prev.map(p => p.id === pageId ? { ...p, icon } : p);
+      const updatedPage = updatedPages.find(p => p.id === pageId);
+      
+      if (user && updatedPage) {
+        DatabaseService.updatePage(updatedPage).catch(error => {
+          console.error('Failed to update page icon:', error);
+        });
       }
-    }
-
-    setPages(updatedPages);
-  }, [pages, user]);
+      
+      return updatedPages;
+    });
+  }, [user]);
 
   const handleUpdatePageDate = useCallback(async (pageId: string, dueDate: string | null) => {
-    const updatedPages = pages.map(p => p.id === pageId ? { ...p, dueDate } : p);
-    const updatedPage = updatedPages.find(p => p.id === pageId);
-
-    if (user && updatedPage) {
-      try {
-        await DatabaseService.updatePage(updatedPage);
-      } catch (error) {
-        console.error('Failed to update page date:', error);
+    setPages(prev => {
+      const updatedPages = prev.map(p => p.id === pageId ? { ...p, dueDate } : p);
+      const updatedPage = updatedPages.find(p => p.id === pageId);
+      
+      if (user && updatedPage) {
+        DatabaseService.updatePage(updatedPage).catch(error => {
+          console.error('Failed to update page date:', error);
+        });
       }
-    }
-
-    setPages(updatedPages);
-  }, [pages, user]);
+      
+      return updatedPages;
+    });
+  }, [user]);
 
   const handleUpdatePageStatus = useCallback(async (pageId: string, status: 'todo' | 'in-progress' | 'done' | null) => {
-    const updatedPages = pages.map(p => p.id === pageId ? { ...p, status } : p);
-    const updatedPage = updatedPages.find(p => p.id === pageId);
-
-    if (user && updatedPage) {
-      try {
-        await DatabaseService.updatePage(updatedPage);
-      } catch (error) {
-        console.error('Failed to update page status:', error);
+    setPages(prev => {
+      const updatedPages = prev.map(p => p.id === pageId ? { ...p, status } : p);
+      const updatedPage = updatedPages.find(p => p.id === pageId);
+      
+      if (user && updatedPage) {
+        DatabaseService.updatePage(updatedPage).catch(error => {
+          console.error('Failed to update page status:', error);
+        });
       }
-    }
-
-    setPages(updatedPages);
-  }, [pages, user]);
+      
+      return updatedPages;
+    });
+  }, [user]);
 
   const handleMovePage = useCallback((draggedId: string, targetId: string, position: 'top' | 'bottom' | 'middle') => {
     setPages(currentPages => {
