@@ -919,5 +919,5 @@ const Editor: React.FC<EditorProps> = ({ page, onUpdateTitle, onUpdateContent, o
     </main>
   );
 };
-{{ ... }}
+
 export default Editor;
