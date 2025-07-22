@@ -752,7 +752,7 @@ const Editor: React.FC<EditorProps> = ({ page, onUpdateTitle, onUpdateContent, o
       }
     }
     return content;
-  }, [blocks, hoveredTablePos]);
+  }, [blocks]);
 
   return (
     <main className="flex-1 p-4 sm:p-6 md:p-8 lg:p-12 overflow-y-auto" ref={editorRef} onDrop={handleDrop}>
