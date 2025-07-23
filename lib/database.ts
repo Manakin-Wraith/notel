@@ -318,6 +318,7 @@ export class DatabaseService {
           { id: createBlockId(), type: 'todo', content: 'Create a new page using the + button in the sidebar.', checked: false },
           { id: createBlockId(), type: 'todo', content: 'Type `/` on a new line to see all available block commands.', checked: false },
           { id: createBlockId(), type: 'todo', content: 'Drag this item by its handle to reorder the list.', checked: false },
+          { id: createBlockId(), type: 'todo', content: 'Click on any page icon (like ✨) to change it to a different emoji.', checked: false },
           { id: createBlockId(), type: 'todo', content: 'Add a status or a due date to this page using the buttons below the title.', checked: false },
           { id: createBlockId(), type: 'todo', content: 'Explore the Agenda, Board, and Calendar views using the icons in the sidebar.', checked: false },
           { id: createBlockId(), type: 'paragraph', content: '' },
