@@ -147,8 +147,9 @@ const AppContent: React.FC = () => {
   const [viewMode, setViewMode] = useState<'editor' | 'agenda' | 'board' | 'calendar'>('editor');
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [syncing, setSyncing] = useState(false);
+  const [welcomePagesCreated, setWelcomePagesCreated] = useState(false);
 
 
   // Load data from Supabase when user is authenticated
@@ -173,9 +174,10 @@ const AppContent: React.FC = () => {
           console.log('📭 No pages found in database');
           
           // For authenticated users, always create welcome pages instead of migrating localStorage
-          if (user) {
+          if (user && !welcomePagesCreated) {
             console.log('🎉 New authenticated user detected - creating welcome pages');
             setSyncing(true);
+            setWelcomePagesCreated(true); // Prevent multiple calls
             try {
               await DatabaseService.createWelcomePages();
               const welcomePages = await DatabaseService.getPages();
@@ -191,6 +193,7 @@ const AppContent: React.FC = () => {
             } catch (error) {
               console.error('❌ Failed to create welcome pages:', error);
               setPages([]);
+              setWelcomePagesCreated(false); // Reset on error to allow retry
             }
             setSyncing(false);
           } else {

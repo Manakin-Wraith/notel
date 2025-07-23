@@ -270,6 +270,13 @@ export class DatabaseService {
       return
     }
 
+    // Check if user already has pages to prevent duplication
+    const existingPages = await this.getPages()
+    if (existingPages.length > 0) {
+      console.log('User already has pages, skipping welcome page creation:', existingPages.length)
+      return
+    }
+
     console.log('Creating welcome pages for new user:', user.email)
     
     const createBlockId = () => `${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
