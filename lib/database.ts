@@ -265,15 +265,23 @@ export class DatabaseService {
   // Create welcome pages for new authenticated users
   static async createWelcomePages(): Promise<void> {
     const user = await getCurrentUser()
-    if (!user) return
+    if (!user) {
+      console.error('Cannot create welcome pages: User not authenticated')
+      return
+    }
 
-    console.log('Creating welcome pages for new user...')
+    console.log('Creating welcome pages for new user:', user.email)
     
     const createBlockId = () => `${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
+    const createPageId = () => `welcome-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
+    
+    const welcomePageId = createPageId();
+    const projectIdeasId = createPageId();
+    const reportId = createPageId();
     
     const welcomePages: Page[] = [
       { 
-        id: '1', 
+        id: welcomePageId, 
         title: 'Welcome to Notel', 
         icon: 'sparkles', 
         parentId: null, 
@@ -292,10 +300,10 @@ export class DatabaseService {
         status: 'in-progress' 
       },
       { 
-        id: '3', 
+        id: projectIdeasId, 
         title: 'Project Ideas', 
         icon: 'light-bulb', 
-        parentId: '1', 
+        parentId: welcomePageId, 
         position: 0,
         content: [
           { id: createBlockId(), type: 'paragraph', content: '- Build a cool app with React and Tailwind.' },
@@ -305,7 +313,7 @@ export class DatabaseService {
         status: 'todo' 
       },
       { 
-        id: '4', 
+        id: reportId, 
         title: 'Finish Q2 report', 
         icon: 'chart-bar', 
         parentId: null, 
@@ -318,14 +326,20 @@ export class DatabaseService {
       },
     ];
     
+    console.log(`About to create ${welcomePages.length} welcome pages for user ${user.email}`);
+    
     for (const page of welcomePages) {
       try {
-        await this.createPage(page)
-        console.log(`Created welcome page: ${page.title}`)
+        console.log(`Creating welcome page: ${page.title} (ID: ${page.id})`);
+        await this.createPage(page);
+        console.log(`✅ Successfully created welcome page: ${page.title}`);
       } catch (error) {
-        console.error(`Failed to create welcome page ${page.id}:`, error)
+        console.error(`❌ Failed to create welcome page ${page.title} (${page.id}):`, error);
+        // Continue creating other pages even if one fails
       }
     }
+    
+    console.log('Finished creating welcome pages');
   }
 
   // Sync local data to Supabase (for migration)

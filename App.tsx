@@ -168,26 +168,42 @@ const AppContent: React.FC = () => {
         await DatabaseService.testPositionColumn();
         
         // Always prioritize database data over localStorage
+        console.log(`🔍 Database pages found: ${supabasePages.length}`);
+        
         if (supabasePages.length === 0) {
+          console.log('📭 No pages found in database - checking localStorage...');
           // Try to migrate localStorage data only if no database data exists
           const localPages = getInitialPages();
+          console.log(`💾 LocalStorage pages found: ${localPages.length}`);
+          
           if (localPages.length > 0) {
+            console.log('🔄 Migrating localStorage data to database...');
             setSyncing(true);
             ProductionDebug.logStateSync('localStorage migration', { pageCount: localPages.length });
             await DatabaseService.syncLocalData();
             const migratedPages = await DatabaseService.getPages();
             setPages(migratedPages);
             setSyncing(false);
+            console.log(`✅ Migration complete - ${migratedPages.length} pages loaded`);
           } else {
             // New authenticated user with no data - create welcome pages
+            console.log('🎉 New user detected - creating welcome pages');
             setSyncing(true);
-            console.log('New user detected - creating welcome pages');
-            await DatabaseService.createWelcomePages();
-            const welcomePages = await DatabaseService.getPages();
-            setPages(welcomePages);
-            // Auto-select the welcome page for new users
-            if (welcomePages.length > 0) {
-              setActivePageId(welcomePages[0].id);
+            try {
+              await DatabaseService.createWelcomePages();
+              const welcomePages = await DatabaseService.getPages();
+              console.log(`🎊 Welcome pages created - ${welcomePages.length} pages loaded`);
+              setPages(welcomePages);
+              // Auto-select the welcome page for new users
+              if (welcomePages.length > 0) {
+                console.log(`🎯 Auto-selecting welcome page: ${welcomePages[0].title}`);
+                setActivePageId(welcomePages[0].id);
+              } else {
+                console.warn('⚠️ No welcome pages were created!');
+              }
+            } catch (error) {
+              console.error('❌ Failed to create welcome pages:', error);
+              setPages([]);
             }
             setSyncing(false);
           }
