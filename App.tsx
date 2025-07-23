@@ -6,7 +6,6 @@ import Auth from './components/Auth';
 import type { Page, Block, TableContent, TableRow } from './types';
 import CommandPalette from './components/CommandPalette';
 import ProductionErrorBoundary from './components/ProductionErrorBoundary';
-import { ProductionDebug } from './lib/production-debug';
 import CalendarView from './components/CalendarView';
 import { ICONS } from './components/icons/icon-constants';
 import HamburgerIcon from './components/icons/HamburgerIcon';
