@@ -171,23 +171,11 @@ const AppContent: React.FC = () => {
         console.log(`🔍 Database pages found: ${supabasePages.length}`);
         
         if (supabasePages.length === 0) {
-          console.log('📭 No pages found in database - checking localStorage...');
-          // Try to migrate localStorage data only if no database data exists
-          const localPages = getInitialPages();
-          console.log(`💾 LocalStorage pages found: ${localPages.length}`);
+          console.log('📭 No pages found in database');
           
-          if (localPages.length > 0) {
-            console.log('🔄 Migrating localStorage data to database...');
-            setSyncing(true);
-            ProductionDebug.logStateSync('localStorage migration', { pageCount: localPages.length });
-            await DatabaseService.syncLocalData();
-            const migratedPages = await DatabaseService.getPages();
-            setPages(migratedPages);
-            setSyncing(false);
-            console.log(`✅ Migration complete - ${migratedPages.length} pages loaded`);
-          } else {
-            // New authenticated user with no data - create welcome pages
-            console.log('🎉 New user detected - creating welcome pages');
+          // For authenticated users, always create welcome pages instead of migrating localStorage
+          if (user) {
+            console.log('🎉 New authenticated user detected - creating welcome pages');
             setSyncing(true);
             try {
               await DatabaseService.createWelcomePages();
@@ -206,6 +194,18 @@ const AppContent: React.FC = () => {
               setPages([]);
             }
             setSyncing(false);
+          } else {
+            // Only migrate localStorage for unauthenticated users
+            console.log('👤 Unauthenticated user - checking localStorage...');
+            const localPages = getInitialPages();
+            console.log(`💾 LocalStorage pages found: ${localPages.length}`);
+            
+            if (localPages.length > 0) {
+              console.log('🔄 Loading localStorage data...');
+              setPages(localPages);
+            } else {
+              setPages([]);
+            }
           }
         } else {
           // Database has data - use it and clear localStorage to prevent conflicts
