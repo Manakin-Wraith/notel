@@ -2,6 +2,9 @@ import { supabase, getCurrentUser } from './supabase'
 import type { Page, Block } from '../types'
 import type { Database } from '../types/database'
 
+// Global lock to prevent concurrent welcome page creation
+let isCreatingWelcomePages = false
+
 type PageRow = Database['public']['Tables']['pages']['Row']
 type BlockRow = Database['public']['Tables']['blocks']['Row']
 type PageInsert = Database['public']['Tables']['pages']['Insert']
@@ -270,14 +273,30 @@ export class DatabaseService {
       return
     }
 
-    // Check if user already has pages to prevent duplication
-    const existingPages = await this.getPages()
-    if (existingPages.length > 0) {
-      console.log('User already has pages, skipping welcome page creation:', existingPages.length)
+    // Global lock to prevent concurrent calls
+    if (isCreatingWelcomePages) {
+      console.log('Welcome pages are already being created, skipping duplicate call')
       return
     }
 
-    console.log('Creating welcome pages for new user:', user.email)
+    isCreatingWelcomePages = true
+    
+    try {
+      // Check if user already has pages to prevent duplication
+      const existingPages = await this.getPages()
+      if (existingPages.length > 0) {
+        console.log('User already has pages, skipping welcome page creation:', existingPages.length)
+        return
+      }
+      
+      // Double-check for existing welcome pages specifically
+      const welcomePageExists = existingPages.some(page => page.title === 'Welcome to Notel')
+      if (welcomePageExists) {
+        console.log('Welcome page already exists, skipping creation')
+        return
+      }
+
+      console.log('Creating welcome pages for new user:', user.email)
     
     const createBlockId = () => `${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
     const createPageId = () => `welcome-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
@@ -346,7 +365,14 @@ export class DatabaseService {
       }
     }
     
-    console.log('Finished creating welcome pages');
+      console.log('Finished creating welcome pages');
+    } catch (error) {
+      console.error('❌ Error during welcome page creation:', error);
+      throw error; // Re-throw to let caller handle
+    } finally {
+      // Always release the lock
+      isCreatingWelcomePages = false;
+    }
   }
 
   // Sync local data to Supabase (for migration)

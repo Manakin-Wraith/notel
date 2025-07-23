@@ -180,19 +180,36 @@ const AppContent: React.FC = () => {
             setWelcomePagesCreated(true); // Prevent multiple calls
             try {
               await DatabaseService.createWelcomePages();
+              // Always fetch fresh data after creation attempt
               const welcomePages = await DatabaseService.getPages();
-              console.log(`🎊 Welcome pages created - ${welcomePages.length} pages loaded`);
+              console.log(`🎊 Welcome pages loaded - ${welcomePages.length} pages found`);
               setPages(welcomePages);
+              
               // Auto-select the welcome page for new users
-              if (welcomePages.length > 0) {
-                console.log(`🎯 Auto-selecting welcome page: ${welcomePages[0].title}`);
+              const welcomePage = welcomePages.find(page => page.title === 'Welcome to Notel');
+              if (welcomePage) {
+                console.log(`🎯 Auto-selecting welcome page: ${welcomePage.title}`);
+                setActivePageId(welcomePage.id);
+              } else if (welcomePages.length > 0) {
+                // Fallback to first page if no welcome page found
+                console.log(`🎯 Auto-selecting first page: ${welcomePages[0].title}`);
                 setActivePageId(welcomePages[0].id);
               } else {
-                console.warn('⚠️ No welcome pages were created!');
+                console.warn('⚠️ No pages found after welcome page creation!');
               }
             } catch (error) {
               console.error('❌ Failed to create welcome pages:', error);
-              setPages([]);
+              // Try to load any existing pages even if welcome creation failed
+              try {
+                const existingPages = await DatabaseService.getPages();
+                setPages(existingPages);
+                if (existingPages.length > 0) {
+                  setActivePageId(existingPages[0].id);
+                }
+              } catch (loadError) {
+                console.error('❌ Failed to load existing pages:', loadError);
+                setPages([]);
+              }
               setWelcomePagesCreated(false); // Reset on error to allow retry
             }
             setSyncing(false);
