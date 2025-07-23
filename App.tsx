@@ -5,15 +5,15 @@ import Editor from './components/Editor';
 import Auth from './components/Auth';
 import type { Page, Block, TableContent, TableRow } from './types';
 import CommandPalette from './components/CommandPalette';
-import Agenda from './components/Agenda';
-import Board from './components/Board';
+import ProductionErrorBoundary from './components/ProductionErrorBoundary';
+import { ProductionDebug } from './lib/production-debug';
 import CalendarView from './components/CalendarView';
 import { ICONS } from './components/icons/icon-constants';
 import HamburgerIcon from './components/icons/HamburgerIcon';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { DatabaseService } from './lib/database';
-import { ProductionDebug } from './lib/production-debug';
-import ProductionErrorBoundary from './components/ProductionErrorBoundary';
+import Agenda from './components/Agenda';
+import Board from './components/Board';
 
 const createBlockId = () => `${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
 

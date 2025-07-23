@@ -1,14 +1,13 @@
-
-
 import React, { useState, useEffect } from 'react';
 import type { Page } from '../types';
 import PlusIcon from './icons/PlusIcon';
 import TrashIcon from './icons/TrashIcon';
 import ListBulletIcon from './icons/ListBulletIcon';
+import CalendarDaysIcon from './icons/CalendarDaysIcon';
 import ViewColumnsIcon from './icons/ViewColumnsIcon';
+import Logo from './Logo';
 import ChevronRightIcon from './icons/ChevronRightIcon';
 import PageIcon from './icons/PageIcon';
-import CalendarDaysIcon from './icons/CalendarDaysIcon';
 
 type DropIndicatorPosition = 'top' | 'bottom' | 'middle';
 type ViewMode = 'editor' | 'agenda' | 'board' | 'calendar';
@@ -225,7 +224,7 @@ const Sidebar: React.FC<SidebarProps> = ({ pages, activePageId, viewMode, onSele
       className={`w-72 h-screen p-4 flex flex-col bg-black/30 backdrop-blur-xl border-r border-white/10 shrink-0 ${isMobile ? 'min-w-72' : ''}`}
     >
       <div className="flex items-center justify-between mb-6 px-1">
-        <h1 className="text-xl font-bold text-gray-200">Notel</h1>
+        <Logo size="medium" showText={true} />
         <div className="flex items-center gap-1">
           <button
             onClick={() => handleViewChange('agenda')}
@@ -289,7 +288,9 @@ const Sidebar: React.FC<SidebarProps> = ({ pages, activePageId, viewMode, onSele
         />
       </nav>
       <div className="mt-4 pt-4 border-t border-white/10 text-center text-xs text-gray-500 space-y-2">
-        <p>A Minimalist Notion Replica</p>
+        <div className="flex items-center justify-center mb-2">
+          <Logo size="small" />
+        </div>
         <p>
           Press{' '}
           <kbd className="font-sans text-xs bg-black/30 border border-white/20 rounded p-0.5 px-1.5">

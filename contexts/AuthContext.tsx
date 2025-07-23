@@ -59,9 +59,17 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   }
 
   const signUp = async (email: string, password: string) => {
+    // Use production URL for email confirmation redirects
+    const redirectTo = import.meta.env.PROD 
+      ? 'https://notel-wine.vercel.app/'
+      : 'http://localhost:5173/'
+    
     const { error } = await supabase.auth.signUp({
       email,
       password,
+      options: {
+        emailRedirectTo: redirectTo
+      }
     })
     return { error }
   }
