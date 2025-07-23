@@ -262,6 +262,72 @@ export class DatabaseService {
     if (error) throw error
   }
 
+  // Create welcome pages for new authenticated users
+  static async createWelcomePages(): Promise<void> {
+    const user = await getCurrentUser()
+    if (!user) return
+
+    console.log('Creating welcome pages for new user...')
+    
+    const createBlockId = () => `${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
+    
+    const welcomePages: Page[] = [
+      { 
+        id: '1', 
+        title: 'Welcome to Notel', 
+        icon: 'sparkles', 
+        parentId: null, 
+        position: 0,
+        content: [
+          { id: createBlockId(), type: 'heading1', content: 'Getting Started' },
+          { id: createBlockId(), type: 'paragraph', content: 'Here are a few things to get you started. Check them off as you go!' },
+          { id: createBlockId(), type: 'todo', content: 'Create a new page using the + button in the sidebar.', checked: false },
+          { id: createBlockId(), type: 'todo', content: 'Type `/` on a new line to see all available block commands.', checked: false },
+          { id: createBlockId(), type: 'todo', content: 'Drag this item by its handle to reorder the list.', checked: false },
+          { id: createBlockId(), type: 'todo', content: 'Add a status or a due date to this page using the buttons below the title.', checked: false },
+          { id: createBlockId(), type: 'todo', content: 'Explore the Agenda, Board, and Calendar views using the icons in the sidebar.', checked: false },
+          { id: createBlockId(), type: 'paragraph', content: '' },
+        ], 
+        dueDate: new Date().toISOString(), 
+        status: 'in-progress' 
+      },
+      { 
+        id: '3', 
+        title: 'Project Ideas', 
+        icon: 'light-bulb', 
+        parentId: '1', 
+        position: 0,
+        content: [
+          { id: createBlockId(), type: 'paragraph', content: '- Build a cool app with React and Tailwind.' },
+          { id: createBlockId(), type: 'paragraph', content: '- Learn a new programming language.' }
+        ],
+        dueDate: null, 
+        status: 'todo' 
+      },
+      { 
+        id: '4', 
+        title: 'Finish Q2 report', 
+        icon: 'chart-bar', 
+        parentId: null, 
+        position: 1,
+        content: [
+          { id: createBlockId(), type: 'paragraph', content: 'Review numbers and finalize the presentation slides.' }
+        ], 
+        dueDate: new Date(new Date().setDate(new Date().getDate() + 1)).toISOString(), 
+        status: 'todo' 
+      },
+    ];
+    
+    for (const page of welcomePages) {
+      try {
+        await this.createPage(page)
+        console.log(`Created welcome page: ${page.title}`)
+      } catch (error) {
+        console.error(`Failed to create welcome page ${page.id}:`, error)
+      }
+    }
+  }
+
   // Sync local data to Supabase (for migration)
   static async syncLocalData(): Promise<void> {
     const user = await getCurrentUser()

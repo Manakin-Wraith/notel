@@ -179,7 +179,17 @@ const AppContent: React.FC = () => {
             setPages(migratedPages);
             setSyncing(false);
           } else {
-            setPages([]);
+            // New authenticated user with no data - create welcome pages
+            setSyncing(true);
+            console.log('New user detected - creating welcome pages');
+            await DatabaseService.createWelcomePages();
+            const welcomePages = await DatabaseService.getPages();
+            setPages(welcomePages);
+            // Auto-select the welcome page for new users
+            if (welcomePages.length > 0) {
+              setActivePageId(welcomePages[0].id);
+            }
+            setSyncing(false);
           }
         } else {
           // Database has data - use it and clear localStorage to prevent conflicts

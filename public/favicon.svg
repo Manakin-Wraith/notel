@@ -1,3 +1,10 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="#8b5cf6">
-  <path d="M20 2H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h4l4 4 4-4h4c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm-2 12H6v-2h12v2zm0-3H6V9h12v2zm0-3H6V6h12v2z"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" fill="none">
+  <!-- Background circle -->
+  <circle cx="16" cy="16" r="15" fill="#1a1a1a" stroke="#8b5cf6" stroke-width="2"/>
+  
+  <!-- Stylized "N" for Notel -->
+  <path d="M10 9v14h2.5V15.5l5 7.5h2.5V9H17.5v7.5L12.5 9H10z" fill="#8b5cf6"/>
+  
+  <!-- Small dot accent -->
+  <circle cx="24" cy="8" r="2" fill="#8b5cf6"/>
 </svg>
