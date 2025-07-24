@@ -1,29 +1,37 @@
 
 
 import React, { useMemo } from 'react';
-import type { Page } from '../../types';
+import type { Event } from '../../types';
 import { isSameDay } from './calendar-utils';
 import PlusIcon from '../icons/PlusIcon';
-import PageIcon from '../icons/PageIcon';
+import CalendarDaysIcon from '../icons/CalendarDaysIcon';
 import TrashIcon from '../icons/TrashIcon';
 
 interface DayViewProps {
-  pages: Page[];
+  events: Event[];
   currentDate: Date;
-  onAddPage: (initialData: Partial<Page>, openInEditor?: boolean) => void;
-  onDeletePage: (id: string) => void;
-  onSelectPage: (id: string) => void;
+  onAddEvent: (eventData: Partial<Event>) => void;
+  onDeleteEvent: (id: string) => void;
+  onSelectEvent: (id: string) => void;
 }
 
-const DayView: React.FC<DayViewProps> = ({ pages, currentDate, onAddPage, onDeletePage, onSelectPage }) => {
+const DayView: React.FC<DayViewProps> = ({ events, currentDate, onAddEvent, onDeleteEvent, onSelectEvent }) => {
 
-    const dayPages = useMemo(() => {
-        return pages.filter(p => isSameDay(new Date(p.dueDate!), currentDate))
-            .sort((a, b) => a.title.localeCompare(b.title));
-    }, [pages, currentDate]);
+    const dayEvents = useMemo(() => {
+        return events.filter(event => {
+            return isSameDay(new Date(event.startDate), currentDate);
+        });
+    }, [events, currentDate]);
 
-    const handleAdd = () => {
-        onAddPage({ dueDate: currentDate.toISOString(), status: 'todo' }, true);
+    const handleAddEvent = () => {
+        const dateString = currentDate.toISOString();
+        onAddEvent({
+            title: 'New Event',
+            startDate: dateString,
+            allDay: true,
+            status: 'scheduled',
+            priority: 'medium'
+        });
     };
 
     return (
@@ -32,30 +40,58 @@ const DayView: React.FC<DayViewProps> = ({ pages, currentDate, onAddPage, onDele
                 <h3 className="font-semibold text-lg text-gray-200">
                     Tasks for {currentDate.toLocaleDateString('en-US', { month: 'long', day: 'numeric' })}
                 </h3>
-                <button onClick={handleAdd} className="flex items-center gap-2 text-sm bg-purple-600 hover:bg-purple-500 text-white font-semibold py-1 px-3 rounded-md transition-colors">
-                    <PlusIcon className="w-4 h-4" />
-                    <span>Add Page</span>
+                <button onClick={handleAddEvent} className="flex items-center gap-2 p-3 bg-purple-600 hover:bg-purple-700 rounded-lg text-white font-medium transition-colors">
+                    <PlusIcon className="w-5 h-5" />
+                    Add Event
                 </button>
             </div>
-            <div className="space-y-2">
-                {dayPages.length > 0 ? (
-                    dayPages.map(page => (
-                        <div key={page.id} className="group flex items-center gap-3 p-3 rounded-md bg-black/40 hover:bg-black/60 transition-colors">
-                            <button onClick={() => onSelectPage(page.id)} className="flex-1 flex items-center gap-3 text-left">
-                                <PageIcon icon={page.icon} className="w-5 h-5 text-gray-400 flex-shrink-0" />
-                                <span className="text-gray-200">{page.title}</span>
-                            </button>
-                            <button onClick={() => onDeletePage(page.id)} className="p-1 text-gray-500 opacity-0 group-hover:opacity-100 hover:text-red-400 rounded-full" aria-label="Delete page">
-                                <TrashIcon className="w-4 h-4" />
-                            </button>
-                        </div>
-                    ))
-                ) : (
-                    <div className="text-center py-10 text-gray-500">
-                        <p>No pages scheduled for this day.</p>
-                    </div>
-                )}
-            </div>
+                <div className="space-y-3">
+                    {dayEvents.length === 0 ? (
+                        <p className="text-gray-400 text-center py-8">No events scheduled for this day</p>
+                    ) : (
+                        dayEvents.map(event => (
+                            <div key={event.id} className="bg-gray-800/50 rounded-lg p-4 hover:bg-gray-800/70 transition-colors group">
+                                <div className="flex items-start justify-between">
+                                    <div className="flex items-start gap-3 flex-1">
+                                        <CalendarDaysIcon className="w-6 h-6 text-gray-300 mt-0.5" />
+                                        <div className="flex-1">
+                                            <h3 className="text-white font-medium mb-1 cursor-pointer hover:text-purple-400" onClick={() => onSelectEvent(event.id)}>
+                                                {event.title}
+                                            </h3>
+                                            {event.description && (
+                                                <p className="text-sm text-gray-300 mb-2">{event.description}</p>
+                                            )}
+                                            <div className="flex items-center gap-4 text-sm text-gray-400">
+                                                <span>
+                                                    {event.status === 'scheduled' && '📅 Scheduled'}
+                                                    {event.status === 'completed' && '✅ Completed'}
+                                                    {event.status === 'cancelled' && '❌ Cancelled'}
+                                                </span>
+                                                <span>
+                                                    {event.priority === 'high' && '🔴 High'}
+                                                    {event.priority === 'medium' && '🟡 Medium'}
+                                                    {event.priority === 'low' && '🟢 Low'}
+                                                </span>
+                                                {event.allDay ? (
+                                                    <span>All Day</span>
+                                                ) : (
+                                                    <span>{new Date(event.startDate).toLocaleTimeString()}</span>
+                                                )}
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <button 
+                                        onClick={() => onDeleteEvent(event.id)}
+                                        className="opacity-0 group-hover:opacity-100 p-2 text-gray-400 hover:text-red-400 hover:bg-red-500/20 rounded-lg transition-all"
+                                        aria-label="Delete event"
+                                    >
+                                        <TrashIcon className="w-4 h-4" />
+                                    </button>
+                                </div>
+                            </div>
+                        ))
+                    )}
+                </div>
         </div>
     );
 };

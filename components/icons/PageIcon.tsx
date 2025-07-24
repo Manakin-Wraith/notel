@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { ICONS } from './icon-constants';
+import { NAMED_ICONS } from './icon-constants';
 import DocumentTextIcon from './DocumentTextIcon';
 import LightBulbIcon from './LightBulbIcon';
 import BookOpenIcon from './BookOpenIcon';
@@ -17,7 +17,7 @@ interface PageIconProps {
 
 const PageIcon: React.FC<PageIconProps> = ({ icon, className = "w-6 h-6" }) => {
   // A simple check if the icon is one of the built-in named icons
-  const isNamedIcon = ICONS.includes(icon);
+  const isNamedIcon = NAMED_ICONS.includes(icon);
 
   if (isNamedIcon) {
     switch (icon) {

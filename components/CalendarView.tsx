@@ -1,6 +1,6 @@
 
 import React, { useState, useMemo } from 'react';
-import type { Page } from '../types';
+import type { Event } from '../types';
 import MonthView from './calendar/MonthView';
 import WeekView from './calendar/WeekView';
 import DayView from './calendar/DayView';
@@ -12,18 +12,19 @@ import CalendarDaysIcon from './icons/CalendarDaysIcon';
 type CalendarDisplayMode = 'month' | 'week' | 'day';
 
 interface CalendarViewProps {
-  pages: Page[];
-  onAddPage: (initialData: Partial<Page>, openInEditor?: boolean) => void;
-  onDeletePage: (id: string) => void;
-  onUpdateDate: (id: string, date: string | null) => void;
-  onSelectPage: (id: string) => void;
+  events: Event[];
+  onAddEvent: (eventData: Partial<Event>) => void;
+  onDeleteEvent: (id: string) => void;
+  onUpdateEvent: (id: string, updates: Partial<Event>) => void;
+  onSelectEvent: (id: string) => void;
 }
 
-const CalendarView: React.FC<CalendarViewProps> = ({ pages, onAddPage, onDeletePage, onUpdateDate, onSelectPage }) => {
+const CalendarView: React.FC<CalendarViewProps> = ({ events, onAddEvent, onDeleteEvent, onUpdateEvent, onSelectEvent }) => {
     const [displayMode, setDisplayMode] = useState<CalendarDisplayMode>('month');
     const [currentDate, setCurrentDate] = useState(new Date());
 
-    const datedPages = useMemo(() => pages.filter(p => p.dueDate), [pages]);
+    // All events are already date-based, no filtering needed
+    const calendarEvents = useMemo(() => events, [events]);
 
     const handleSetToday = () => setCurrentDate(new Date());
     
@@ -64,7 +65,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({ pages, onAddPage, onDeleteP
     }, [currentDate, displayMode]);
 
     const renderGrid = () => {
-        const props = { pages: datedPages, currentDate, onAddPage, onDeletePage, onUpdateDate, onSelectPage, setCurrentDate, setDisplayMode };
+        const props = { events: calendarEvents, currentDate, onAddEvent, onDeleteEvent, onUpdateEvent, onSelectEvent, setCurrentDate, setDisplayMode };
         switch(displayMode) {
             case 'month':
                 return <MonthView {...props} />;

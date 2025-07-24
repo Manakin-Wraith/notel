@@ -30,3 +30,18 @@ export interface Page {
   dueDate: string | null; 
   status: 'todo' | 'in-progress' | 'done' | null;
 }
+
+export interface Event {
+  id: string;
+  title: string;
+  description?: string;
+  icon?: string; // Emoji icon for visual identification
+  startDate: string; // ISO string
+  endDate?: string; // ISO string for multi-day or timed events
+  allDay: boolean;
+  status: 'scheduled' | 'completed' | 'cancelled';
+  priority: 'low' | 'medium' | 'high';
+  linkedPageId?: string; // Optional reference to a related page
+  createdAt: string;
+  updatedAt: string;
+}

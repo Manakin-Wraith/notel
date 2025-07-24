@@ -1,5 +1,5 @@
 import { supabase, getCurrentUser } from './supabase'
-import type { Page, Block } from '../types'
+import type { Page, Block, Event } from '../types'
 import type { Database } from '../types/database'
 
 // Global lock to prevent concurrent welcome page creation
@@ -7,8 +7,10 @@ let isCreatingWelcomePages = false
 
 type PageRow = Database['public']['Tables']['pages']['Row']
 type BlockRow = Database['public']['Tables']['blocks']['Row']
+type EventRow = Database['public']['Tables']['events']['Row']
 type PageInsert = Database['public']['Tables']['pages']['Insert']
 type BlockInsert = Database['public']['Tables']['blocks']['Insert']
+type EventInsert = Database['public']['Tables']['events']['Insert']
 
 // Convert database row to app Page type
 const dbPageToPage = (dbPage: PageRow, blocks: Block[] = []): Page => ({
@@ -52,9 +54,40 @@ const blockToDbInsert = (block: Block, pageId: string, position: number): BlockI
   checked: block.checked || false
 })
 
+// Convert database row to app Event type
+const dbEventToEvent = (dbEvent: EventRow): Event => ({
+  id: dbEvent.id,
+  title: dbEvent.title,
+  description: dbEvent.description || undefined,
+  icon: dbEvent.icon || undefined,
+  startDate: dbEvent.start_date,
+  endDate: dbEvent.end_date || undefined,
+  allDay: dbEvent.all_day,
+  status: dbEvent.status,
+  priority: dbEvent.priority,
+  linkedPageId: dbEvent.linked_page_id || undefined,
+  createdAt: dbEvent.created_at,
+  updatedAt: dbEvent.updated_at
+})
+
+// Convert app Event to database insert
+const eventToDbInsert = (event: Event, userId: string): EventInsert => ({
+  id: event.id,
+  user_id: userId,
+  title: event.title,
+  description: event.description || null,
+  icon: event.icon || null,
+  start_date: event.startDate,
+  end_date: event.endDate || null,
+  all_day: event.allDay,
+  status: event.status,
+  priority: event.priority,
+  linked_page_id: event.linkedPageId || null
+})
+
 export class DatabaseService {
   // Test if position column exists in database
-  static async testPositionColumn(): Promise<void> {
+  async testPositionColumn(): Promise<void> {
     const user = await getCurrentUser()
     if (!user) throw new Error('User not authenticated')
 
@@ -80,7 +113,7 @@ export class DatabaseService {
     }
   }
   // Fetch all pages for current user
-  static async getPages(): Promise<Page[]> {
+  async getPages(): Promise<Page[]> {
     const user = await getCurrentUser()
     if (!user) throw new Error('User not authenticated')
 
@@ -145,7 +178,7 @@ export class DatabaseService {
   }
 
   // Create a new page
-  static async createPage(page: Page): Promise<Page> {
+  async createPage(page: Page): Promise<Page> {
     const user = await getCurrentUser()
     if (!user) throw new Error('User not authenticated')
 
@@ -187,7 +220,7 @@ export class DatabaseService {
   }
 
   // Update an existing page
-  static async updatePage(page: Page): Promise<Page> {
+  async updatePage(page: Page): Promise<Page> {
     const user = await getCurrentUser()
     if (!user) throw new Error('User not authenticated')
 
@@ -245,7 +278,7 @@ export class DatabaseService {
   }
 
   // Delete a page
-  static async deletePage(pageId: string): Promise<void> {
+  async deletePage(pageId: string): Promise<void> {
     const user = await getCurrentUser()
     if (!user) throw new Error('User not authenticated')
 
@@ -266,7 +299,7 @@ export class DatabaseService {
   }
 
   // Create welcome pages for new authenticated users
-  static async createWelcomePages(): Promise<void> {
+  async createWelcomePages(): Promise<void> {
     const user = await getCurrentUser()
     if (!user) {
       console.error('Cannot create welcome pages: User not authenticated')
@@ -377,7 +410,7 @@ export class DatabaseService {
   }
 
   // Sync local data to Supabase (for migration)
-  static async syncLocalData(): Promise<void> {
+  async syncLocalData(): Promise<void> {
     const user = await getCurrentUser()
     if (!user) return
 
@@ -409,7 +442,7 @@ export class DatabaseService {
   }
 
   // Update page position for cross-device synchronization
-  static async updatePagePosition(pageId: string, newPosition: number, newParentId: string | null = null): Promise<void> {
+  async updatePagePosition(pageId: string, newPosition: number, newParentId: string | null = null): Promise<void> {
     const user = await getCurrentUser()
     if (!user) throw new Error('User not authenticated')
 
@@ -428,7 +461,7 @@ export class DatabaseService {
   }
 
   // Reorder pages after a drag-and-drop operation
-  static async reorderPages(draggedId: string, targetId: string, position: 'top' | 'bottom' | 'middle'): Promise<void> {
+  async reorderPages(draggedId: string, targetId: string, position: 'top' | 'bottom' | 'middle'): Promise<void> {
     const user = await getCurrentUser()
     if (!user) throw new Error('User not authenticated')
 
@@ -493,7 +526,7 @@ export class DatabaseService {
   }
 
   // Normalize all page positions to integers
-  private static async normalizePositions(): Promise<void> {
+  async normalizePositions(): Promise<void> {
     const user = await getCurrentUser()
     if (!user) return
 
@@ -523,4 +556,133 @@ export class DatabaseService {
       }
     }
   }
+
+  // Event CRUD Operations
+  async getEvents(): Promise<Event[]> {
+    const user = await getCurrentUser()
+    if (!user) {
+      console.warn('No authenticated user found')
+      return []
+    }
+
+    try {
+      const { data: events, error } = await supabase
+        .from('events')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('start_date', { ascending: true })
+
+      if (error) {
+        // Check if it's a "relation does not exist" error
+        if (error.code === '42P01' || error.message.includes('relation "events" does not exist')) {
+          console.warn('⚠️ Events table does not exist yet. Please run the database schema to create it.');
+          return [];
+        }
+        console.error('Error fetching events:', error)
+        return []
+      }
+
+      return events ? events.map(dbEventToEvent) : []
+    } catch (error) {
+      console.error('Unexpected error fetching events:', error)
+      return []
+    }
+  }
+
+  async createEvent(event: Event): Promise<Event> {
+    const user = await getCurrentUser()
+    if (!user) {
+      throw new Error('No authenticated user found')
+    }
+
+    try {
+      const eventData = eventToDbInsert(event, user.id)
+      const { data, error } = await supabase
+        .from('events')
+        .insert(eventData)
+        .select()
+        .single()
+
+      if (error) {
+        // Check if it's a "relation does not exist" error
+        if (error.code === '42P01' || error.message.includes('relation "events" does not exist')) {
+          console.warn('⚠️ Events table does not exist yet. Event will be stored locally only.');
+          throw new Error('Events table not found. Please run the database schema.');
+        }
+        console.error('Error creating event:', error)
+        throw error
+      }
+
+      return dbEventToEvent(data)
+    } catch (error) {
+      console.error('Unexpected error creating event:', error)
+      throw error
+    }
+  }
+
+  async updateEvent(event: Event): Promise<Event> {
+    const user = await getCurrentUser()
+    if (!user) {
+      throw new Error('No authenticated user found')
+    }
+
+    try {
+      const eventData = eventToDbInsert(event, user.id)
+      const { data, error } = await supabase
+        .from('events')
+        .update({
+          ...eventData,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', event.id)
+        .eq('user_id', user.id)
+        .select()
+        .single()
+
+      if (error) {
+        // Check if it's a "relation does not exist" error
+        if (error.code === '42P01' || error.message.includes('relation "events" does not exist')) {
+          console.warn('⚠️ Events table does not exist yet. Event will be stored locally only.');
+          throw new Error('Events table not found. Please run the database schema.');
+        }
+        console.error('Error updating event:', error)
+        throw error
+      }
+
+      return dbEventToEvent(data)
+    } catch (error) {
+      console.error('Unexpected error updating event:', error)
+      throw error
+    }
+  }
+
+  async deleteEvent(eventId: string): Promise<void> {
+    const user = await getCurrentUser()
+    if (!user) {
+      throw new Error('No authenticated user found')
+    }
+
+    try {
+      const { error } = await supabase
+        .from('events')
+        .delete()
+        .eq('id', eventId)
+        .eq('user_id', user.id)
+
+      if (error) {
+        // Check if it's a "relation does not exist" error
+        if (error.code === '42P01' || error.message.includes('relation "events" does not exist')) {
+          console.warn('⚠️ Events table does not exist yet. Event will be deleted locally only.');
+          return; // Don't throw error, just delete locally
+        }
+        console.error('Error deleting event:', error)
+        throw error
+      }
+    } catch (error) {
+      console.error('Unexpected error deleting event:', error)
+      throw error
+    }
+  }
 }
+
+export const databaseService = new DatabaseService()

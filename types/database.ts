@@ -54,7 +54,7 @@ export interface Database {
           type: string
           content: Json
           position: number
-          checked: boolean
+          checked: boolean | null
           created_at: string
           updated_at: string
         }
@@ -62,9 +62,9 @@ export interface Database {
           id?: string
           page_id: string
           type: string
-          content?: Json
+          content: Json
           position?: number
-          checked?: boolean
+          checked?: boolean | null
           created_at?: string
           updated_at?: string
         }
@@ -74,7 +74,54 @@ export interface Database {
           type?: string
           content?: Json
           position?: number
-          checked?: boolean
+          checked?: boolean | null
+          created_at?: string
+          updated_at?: string
+        }
+      }
+      events: {
+        Row: {
+          id: string
+          user_id: string
+          title: string
+          description: string | null
+          icon: string | null
+          start_date: string
+          end_date: string | null
+          all_day: boolean
+          status: 'scheduled' | 'completed' | 'cancelled'
+          priority: 'low' | 'medium' | 'high'
+          linked_page_id: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          title: string
+          description?: string | null
+          icon?: string | null
+          start_date: string
+          end_date?: string | null
+          all_day?: boolean
+          status?: 'scheduled' | 'completed' | 'cancelled'
+          priority?: 'low' | 'medium' | 'high'
+          linked_page_id?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          title?: string
+          description?: string | null
+          icon?: string | null
+          start_date?: string
+          end_date?: string | null
+          all_day?: boolean
+          status?: 'scheduled' | 'completed' | 'cancelled'
+          priority?: 'low' | 'medium' | 'high'
+          linked_page_id?: string | null
           created_at?: string
           updated_at?: string
         }

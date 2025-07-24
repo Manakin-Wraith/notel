@@ -3,14 +3,17 @@ import React, { useState, useEffect, useCallback } from 'react';
 import Sidebar from './components/Sidebar';
 import Editor from './components/Editor';
 import Auth from './components/Auth';
-import type { Page, Block, TableContent, TableRow } from './types';
+import type { Page, Block, TableContent, TableRow, Event } from './types';
 import CommandPalette from './components/CommandPalette';
 import ProductionErrorBoundary from './components/ProductionErrorBoundary';
 import CalendarView from './components/CalendarView';
+import EventModal from './components/EventModal';
+import EventDetailsModal from './components/EventDetailsModal';
 import { ICONS } from './components/icons/icon-constants';
 import HamburgerIcon from './components/icons/HamburgerIcon';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
-import { DatabaseService } from './lib/database';
+import { databaseService } from './lib/database';
+import { getCurrentUser } from './lib/supabase';
 import Agenda from './components/Agenda';
 import Board from './components/Board';
 
@@ -139,18 +142,50 @@ const getInitialPages = (): Page[] => {
 
 const getRandomIcon = () => ICONS[Math.floor(Math.random() * ICONS.length)];
 
-const AppContent: React.FC = () => {
-  const { user, loading: authLoading, signOut } = useAuth();
-  const [pages, setPages] = useState<Page[]>([]);
-  const [activePageId, setActivePageId] = useState<string | null>(null);
-  const [isPaletteOpen, setIsPaletteOpen] = useState(false);
-  const [viewMode, setViewMode] = useState<'editor' | 'agenda' | 'board' | 'calendar'>('editor');
-  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-  const [isMobile, setIsMobile] = useState(false);
-  const [loading, setLoading] = useState(false);
-  const [syncing, setSyncing] = useState(false);
-  const [welcomePagesCreated, setWelcomePagesCreated] = useState(false);
-
+function AppContent() {
+    const { user, loading: authLoading, signOut } = useAuth();
+    const [pages, setPages] = useState<Page[]>(getInitialPages());
+    const [events, setEvents] = useState<Event[]>([
+    // Sample events to demonstrate unified Agenda with icons
+    {
+      id: 'sample-event-1',
+      title: 'Team Meeting',
+      description: 'Weekly team sync',
+      icon: '👥',
+      startDate: new Date().toISOString(),
+      allDay: false,
+      status: 'scheduled',
+      priority: 'medium',
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    },
+    {
+      id: 'sample-event-2', 
+      title: 'Project Deadline',
+      description: 'Final submission',
+      icon: '🎯',
+      startDate: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(), // Tomorrow
+      allDay: true,
+      status: 'scheduled',
+      priority: 'high',
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    }
+  ]);
+    const [activePageId, setActivePageId] = useState<string | null>(null);
+    const [isPaletteOpen, setIsPaletteOpen] = useState(false);
+    const [viewMode, setViewMode] = useState<'editor' | 'agenda' | 'board' | 'calendar'>('editor');
+    const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+    const [isMobile, setIsMobile] = useState(false);
+    const [loading, setLoading] = useState(false);
+    const [syncing, setSyncing] = useState(false);
+    const [welcomePagesCreated, setWelcomePagesCreated] = useState(false);
+    
+    // Event Modal State
+    const [eventModalOpen, setEventModalOpen] = useState(false);
+    const [eventDetailsModalOpen, setEventDetailsModalOpen] = useState(false);
+    const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
+    const [eventModalInitialDate, setEventModalInitialDate] = useState<string | undefined>();
 
   // Load data from Supabase when user is authenticated
   useEffect(() => {
@@ -162,10 +197,10 @@ const AppContent: React.FC = () => {
 
       try {
         setLoading(true);
-        const supabasePages = await DatabaseService.getPages();
+        const supabasePages = await databaseService.getPages();
         
         // Test database schema first
-        await DatabaseService.testPositionColumn();
+        await databaseService.testPositionColumn();
         
         // Always prioritize database data over localStorage
         console.log(`🔍 Database pages found: ${supabasePages.length}`);
@@ -179,11 +214,22 @@ const AppContent: React.FC = () => {
             setSyncing(true);
             setWelcomePagesCreated(true); // Prevent multiple calls
             try {
-              await DatabaseService.createWelcomePages();
+              await databaseService.createWelcomePages();
               // Always fetch fresh data after creation attempt
-              const welcomePages = await DatabaseService.getPages();
+              const welcomePages = await databaseService.getPages();
               console.log(`🎊 Welcome pages loaded - ${welcomePages.length} pages found`);
               setPages(welcomePages);
+              
+              // Also load events after creating welcome pages
+              const welcomeEvents = await databaseService.getEvents();
+              
+              // If no events in database, keep sample events for demo
+              if (welcomeEvents.length === 0) {
+                console.log('📝 No database events found, keeping sample events with icons');
+                // Keep the existing sample events (they have icons)
+              } else {
+                setEvents(welcomeEvents);
+              }
               
               // Auto-select the welcome page for new users
               const welcomePage = welcomePages.find(page => page.title === 'Welcome to Notel');
@@ -201,8 +247,19 @@ const AppContent: React.FC = () => {
               console.error('❌ Failed to create welcome pages:', error);
               // Try to load any existing pages even if welcome creation failed
               try {
-                const existingPages = await DatabaseService.getPages();
+                const existingPages = await databaseService.getPages();
                 setPages(existingPages);
+                
+                // Also load any existing events
+                const existingEvents = await databaseService.getEvents();
+                
+                // If no events in database, keep sample events for demo
+                if (existingEvents.length === 0) {
+                  console.log('📝 No database events found, keeping sample events with icons');
+                  // Keep the existing sample events (they have icons)
+                } else {
+                  setEvents(existingEvents);
+                }
                 if (existingPages.length > 0) {
                   setActivePageId(existingPages[0].id);
                 }
@@ -228,8 +285,20 @@ const AppContent: React.FC = () => {
           }
         } else {
           // Database has data - use it and clear localStorage to prevent conflicts
+          console.log(`🔍 Database pages found: ${supabasePages.length}`);
           console.log('Loading pages from database with positions preserved');
           setPages(supabasePages);
+          // Load events from database
+          const supabaseEvents = await databaseService.getEvents();
+          console.log(`🗓️ Database events found: ${supabaseEvents.length}`);
+          
+          // If no events in database, keep sample events for demo
+          if (supabaseEvents.length === 0) {
+            console.log('📝 No database events found, keeping sample events with icons');
+            // Keep the existing sample events (they have icons)
+          } else {
+            setEvents(supabaseEvents);
+          }
           // Clear localStorage to prevent it from overriding database order
           localStorage.removeItem('glasstion-pages');
         }
@@ -333,7 +402,7 @@ const AppContent: React.FC = () => {
 
     if (user) {
       try {
-        await DatabaseService.createPage(newPage);
+        await databaseService.createPage(newPage);
         setPages(prev => [...prev, newPage]);
       } catch (error) {
         console.error('Failed to create page:', error);
@@ -352,7 +421,7 @@ const AppContent: React.FC = () => {
   const handleDeletePage = useCallback(async (pageId: string) => {
     if (user) {
       try {
-        await DatabaseService.deletePage(pageId);
+        await databaseService.deletePage(pageId);
       } catch (error) {
         console.error('Failed to delete page:', error);
       }
@@ -370,7 +439,7 @@ const AppContent: React.FC = () => {
       const updatedPage = updatedPages.find(p => p.id === pageId);
       
       if (user && updatedPage) {
-        DatabaseService.updatePage(updatedPage).catch(error => {
+        databaseService.updatePage(updatedPage).catch(error => {
           console.error('Failed to update page title:', error);
         });
       }
@@ -385,7 +454,7 @@ const AppContent: React.FC = () => {
       const updatedPage = updatedPages.find(p => p.id === pageId);
       
       if (user && updatedPage) {
-        DatabaseService.updatePage(updatedPage).catch(error => {
+        databaseService.updatePage(updatedPage).catch(error => {
           console.error('Failed to update page content:', error);
         });
       }
@@ -400,7 +469,7 @@ const AppContent: React.FC = () => {
       const updatedPage = updatedPages.find(p => p.id === pageId);
       
       if (user && updatedPage) {
-        DatabaseService.updatePage(updatedPage).catch(error => {
+        databaseService.updatePage(updatedPage).catch(error => {
           console.error('Failed to update page icon:', error);
         });
       }
@@ -415,7 +484,7 @@ const AppContent: React.FC = () => {
       const updatedPage = updatedPages.find(p => p.id === pageId);
       
       if (user && updatedPage) {
-        DatabaseService.updatePage(updatedPage).catch(error => {
+        databaseService.updatePage(updatedPage).catch(error => {
           console.error('Failed to update page date:', error);
         });
       }
@@ -430,7 +499,7 @@ const AppContent: React.FC = () => {
       const updatedPage = updatedPages.find(p => p.id === pageId);
       
       if (user && updatedPage) {
-        DatabaseService.updatePage(updatedPage).catch(error => {
+        databaseService.updatePage(updatedPage).catch(error => {
           console.error('Failed to update page status:', error);
         });
       }
@@ -438,6 +507,140 @@ const AppContent: React.FC = () => {
       return updatedPages;
     });
   }, [user]);
+
+  // Enhanced Event Management Functions with UI Integration
+  const handleAddEvent = useCallback(async (eventData: Partial<Event>) => {
+    const newEvent: Event = {
+      id: `event-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
+      title: eventData.title || 'New Event',
+      description: eventData.description,
+      icon: eventData.icon,
+      startDate: eventData.startDate || new Date().toISOString(),
+      endDate: eventData.endDate,
+      allDay: eventData.allDay ?? true,
+      status: eventData.status || 'scheduled',
+      priority: eventData.priority || 'medium',
+      linkedPageId: eventData.linkedPageId,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    };
+    
+    try {
+      // Save to database if user is authenticated
+      const user = await getCurrentUser();
+      if (user) {
+        const savedEvent = await databaseService.createEvent(newEvent);
+        setEvents(prev => [...prev, savedEvent]);
+        return savedEvent;
+      } else {
+        // Fallback to local state for non-authenticated users
+        setEvents(prev => [...prev, newEvent]);
+        return newEvent;
+      }
+    } catch (error) {
+      console.error('Error saving event to database:', error);
+      // Fallback to local state on error
+      setEvents(prev => [...prev, newEvent]);
+      return newEvent;
+    }
+  }, []); 
+
+  const handleUpdateEvent = useCallback(async (eventId: string, updates: Partial<Event>) => {
+    const updatedEvent = events.find(e => e.id === eventId);
+    if (!updatedEvent) return;
+    
+    const newEventData = { ...updatedEvent, ...updates, updatedAt: new Date().toISOString() };
+    
+    try {
+      // Save to database if user is authenticated
+      const user = await getCurrentUser();
+      if (user) {
+        const savedEvent = await databaseService.updateEvent(newEventData);
+        setEvents(prev => prev.map(event => 
+          event.id === eventId ? savedEvent : event
+        ));
+      } else {
+        // Fallback to local state for non-authenticated users
+        setEvents(prev => prev.map(event => 
+          event.id === eventId ? newEventData : event
+        ));
+      }
+    } catch (error) {
+      console.error('Error updating event in database:', error);
+      // Fallback to local state on error
+      setEvents(prev => prev.map(event => 
+        event.id === eventId ? newEventData : event
+      ));
+    }
+  }, [events]);
+
+  const handleDeleteEvent = useCallback(async (eventId: string) => {
+    try {
+      // Delete from database if user is authenticated
+      const user = await getCurrentUser();
+      if (user) {
+        await databaseService.deleteEvent(eventId);
+      }
+      // Remove from local state
+      setEvents(prev => prev.filter(event => event.id !== eventId));
+    } catch (error) {
+      console.error('Error deleting event from database:', error);
+      // Still remove from local state even if database delete fails
+      setEvents(prev => prev.filter(event => event.id !== eventId));
+    }
+  }, []);
+
+  const handleSelectEvent = useCallback((eventId: string) => {
+    console.log('🔍 handleSelectEvent called with eventId:', eventId);
+    console.log('📅 Current events array:', events);
+    const event = events.find(e => e.id === eventId);
+    console.log('🎯 Found event:', event);
+    if (event) {
+      console.log('✅ Opening event details modal for:', event.title);
+      setSelectedEvent(event);
+      setEventDetailsModalOpen(true);
+    } else {
+      console.warn('❌ Event not found in events array');
+    }
+  }, [events]);
+
+  const handleCreateEvent = useCallback((initialDate?: string) => {
+    setSelectedEvent(null);
+    setEventModalInitialDate(initialDate);
+    setEventModalOpen(true);
+  }, []);
+
+  // handleEditEvent functionality is integrated into EventDetailsModal
+
+  const handleEventModalSave = useCallback(async (eventData: Partial<Event>) => {
+    if (selectedEvent) {
+      // Update existing event
+      await handleUpdateEvent(selectedEvent.id, eventData);
+    } else {
+      // Create new event
+      await handleAddEvent(eventData);
+    }
+    setEventModalOpen(false);
+    setSelectedEvent(null);
+    setEventModalInitialDate(undefined);
+  }, [selectedEvent, handleUpdateEvent, handleAddEvent]);
+
+  const handleEventModalClose = useCallback(() => {
+    setEventModalOpen(false);
+    setSelectedEvent(null);
+    setEventModalInitialDate(undefined);
+  }, []);
+
+  const handleEventDetailsClose = useCallback(() => {
+    setEventDetailsModalOpen(false);
+    setSelectedEvent(null);
+  }, []);
+
+  const handleEventDetailsEdit = useCallback(() => {
+    setEventDetailsModalOpen(false);
+    setEventModalOpen(true);
+    // selectedEvent is already set
+  }, []);
 
   const handleMovePage = useCallback(async (draggedId: string, targetId: string, position: 'top' | 'bottom' | 'middle') => {
     // First, update local state immediately and capture the new state for database sync
@@ -502,7 +705,7 @@ const AppContent: React.FC = () => {
         const draggedPage = updatedPagesForSync.find(p => p.id === draggedId);
         if (draggedPage) {
           console.log('Saving page position:', { id: draggedPage.id, parentId: draggedPage.parentId, position: draggedPage.position });
-          await DatabaseService.updatePage(draggedPage);
+          await databaseService.updatePage(draggedPage);
           
           // Also update any other pages in the same parent group to ensure consistent ordering
           const affectedPages = updatedPagesForSync.filter(p => 
@@ -511,7 +714,7 @@ const AppContent: React.FC = () => {
           
           for (const page of affectedPages) {
             try {
-              await DatabaseService.updatePage(page);
+              await databaseService.updatePage(page);
             } catch (error) {
               console.warn('Failed to update sibling page position:', page.id, error);
             }
@@ -545,18 +748,33 @@ const AppContent: React.FC = () => {
           />
         );
       case 'agenda':
-        return <Agenda pages={pages} onSelectPage={handleSelectPage} />;
+        return (
+          <Agenda 
+            pages={pages} 
+            events={events}
+            onSelectPage={handleSelectPage}
+            onSelectEvent={handleSelectEvent}
+          />
+        );
       case 'board':
         return <Board pages={pages} onUpdateStatus={handleUpdatePageStatus} onSelectPage={handleSelectPage} />;
       case 'calendar':
         return (
-          <CalendarView
-            pages={pages}
-            onAddPage={(data) => handleAddPage(data, true)}
-            onDeletePage={handleDeletePage}
-            onSelectPage={handleSelectPage}
-            onUpdateDate={handleUpdatePageDate}
-          />
+          <>
+            <CalendarView
+              events={events}
+              onAddEvent={(eventData) => {
+                // For calendar view, we expect eventData with startDate
+                const initialDate = eventData.startDate || new Date().toISOString();
+                handleCreateEvent(initialDate);
+              }}
+              onDeleteEvent={handleDeleteEvent}
+              onSelectEvent={handleSelectEvent}
+              onUpdateEvent={handleUpdateEvent}
+            />
+            
+
+          </>
         );
       default:
         return (
@@ -655,6 +873,24 @@ const AppContent: React.FC = () => {
           onClose={() => setIsPaletteOpen(false)}
         />
       )}
+      
+      {/* Global Event Modals - Available from any view */}
+      <EventModal
+        isOpen={eventModalOpen}
+        onClose={handleEventModalClose}
+        onSave={handleEventModalSave}
+        onDelete={selectedEvent ? handleDeleteEvent : undefined}
+        event={selectedEvent}
+        initialDate={eventModalInitialDate}
+      />
+      
+      <EventDetailsModal
+        isOpen={eventDetailsModalOpen}
+        onClose={handleEventDetailsClose}
+        onEdit={handleEventDetailsEdit}
+        onDelete={handleDeleteEvent}
+        event={selectedEvent}
+      />
     </div>
   );
 };
