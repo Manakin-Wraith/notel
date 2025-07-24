@@ -618,39 +618,32 @@ const AppContent: React.FC = () => {
         <div className="fixed inset-0 bg-black/50 z-30 md:hidden" />
       )}
 
-      {/* Sidebar */}
-      <div className={`
-        ${isMobile ? 'fixed' : 'relative'}
-        ${isMobile && !isSidebarOpen ? '-translate-x-full' : 'translate-x-0'}
-        transition-transform duration-300 ease-in-out
-        ${isMobile ? 'z-40' : 'z-0'}
-        h-screen
-      `}>
-        <Sidebar
-          id={isMobile ? 'mobile-sidebar' : undefined}
-          pages={pages}
-          activePageId={activePageId}
-          viewMode={viewMode}
-          onSelectPage={(id) => {
-            handleSelectPage(id);
-            if (isMobile) setIsSidebarOpen(false);
-          }}
-          onAddPage={() => {
-            handleAddPage();
-            if (isMobile) setIsSidebarOpen(false);
-          }}
-          onDeletePage={handleDeletePage}
-          onMovePage={handleMovePage}
-          onSetViewMode={(mode) => {
-            setViewMode(mode);
-            if (isMobile) setIsSidebarOpen(false);
-          }}
-          isMobile={isMobile}
-        />
-      </div>
+      {/* Sidebar - fixed positioning, always rendered */}
+      <Sidebar
+        id={isMobile ? 'mobile-sidebar' : undefined}
+        pages={pages}
+        activePageId={activePageId}
+        viewMode={viewMode}
+        onSelectPage={(id) => {
+          handleSelectPage(id);
+          if (isMobile) setIsSidebarOpen(false);
+        }}
+        onAddPage={() => {
+          handleAddPage();
+          if (isMobile) setIsSidebarOpen(false);
+        }}
+        onDeletePage={handleDeletePage}
+        onMovePage={handleMovePage}
+        onSetViewMode={(mode) => {
+          setViewMode(mode);
+          if (isMobile) setIsSidebarOpen(false);
+        }}
+        isMobile={isMobile}
+        isOpen={!isMobile || isSidebarOpen}
+      />
 
-      {/* Main content */}
-      <div className={`flex-1 ${isMobile ? 'w-full' : ''}`}>
+      {/* Main content - adjusted for fixed sidebar */}
+      <div className={`flex-1 ${isMobile ? 'w-full' : 'ml-72'}`}>
         {renderView()}
       </div>
 

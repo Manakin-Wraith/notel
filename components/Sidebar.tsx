@@ -177,9 +177,10 @@ interface SidebarProps {
   onSetViewMode: (mode: ViewMode) => void;
   id?: string;
   isMobile?: boolean;
+  isOpen?: boolean;
 }
 
-const Sidebar: React.FC<SidebarProps> = ({ pages, activePageId, viewMode, onSelectPage, onAddPage, onDeletePage, onMovePage, onSetViewMode, id, isMobile = false }) => {
+const Sidebar: React.FC<SidebarProps> = ({ pages, activePageId, viewMode, onSelectPage, onAddPage, onDeletePage, onMovePage, onSetViewMode, id, isMobile = false, isOpen = true }) => {
   const [isMac, setIsMac] = useState(false);
   const [dropIndicator, setDropIndicator] = useState<{ pageId: string, position: DropIndicatorPosition } | null>(null);
   const [expandedPages, setExpandedPages] = useState<Set<string>>(() => findAncestors(activePageId, pages));
@@ -221,7 +222,7 @@ const Sidebar: React.FC<SidebarProps> = ({ pages, activePageId, viewMode, onSele
   return (
     <aside 
       id={id}
-      className={`w-72 h-screen p-4 flex flex-col bg-black/30 backdrop-blur-xl border-r border-white/10 shrink-0 ${isMobile ? 'min-w-72' : ''}`}
+      className={`fixed left-0 top-0 w-72 h-screen p-4 flex flex-col bg-black/30 backdrop-blur-xl border-r border-white/10 shrink-0 z-40 transition-transform duration-300 ease-in-out ${isMobile ? 'min-w-72' : ''} ${isMobile && !isOpen ? '-translate-x-full' : 'translate-x-0'}`}
     >
       <div className="flex items-center justify-between mb-6 px-1">
         <Logo size="medium" showText={true} />
