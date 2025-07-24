@@ -354,7 +354,10 @@ const Editor: React.FC<EditorProps> = ({ page, onUpdateTitle, onUpdateContent, o
     
     if (e.key === '/') {
         if(currentBlockContent === '') {
+            e.preventDefault();
             setMenuState({ open: true, blockId: block.id });
+            // Clear the content since we're opening the menu
+            setBlocks(prev => prev.map(b => b.id === block.id ? { ...b, content: '' } : b));
         }
     }
   };
@@ -846,6 +849,7 @@ const Editor: React.FC<EditorProps> = ({ page, onUpdateTitle, onUpdateContent, o
                     <BlockTypeMenu 
                       onSelect={(newType) => handleBlockTypeChange(block.id, newType)} 
                       onClose={() => setMenuState({ open: false, blockId: null })} 
+                      triggerElement={document.querySelector(`[data-block-id="${block.id}"]`) as HTMLElement}
                     />
                   )}
                 </div>
@@ -907,6 +911,7 @@ const Editor: React.FC<EditorProps> = ({ page, onUpdateTitle, onUpdateContent, o
                   <BlockTypeMenu 
                     onSelect={(newType) => handleBlockTypeChange(block.id, newType)} 
                     onClose={() => setMenuState({ open: false, blockId: null })} 
+                    triggerElement={document.querySelector(`[data-block-id="${block.id}"]`) as HTMLElement}
                   />
                 )}
               </div>

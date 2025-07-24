@@ -1,6 +1,5 @@
-
-
-import React, { useState, useEffect, useRef, useMemo } from 'react';
+import React, { useState, useRef, useEffect, useMemo } from 'react';
+import { createPortal } from 'react-dom';
 import type { Block } from '../types';
 import TextIcon from './icons/TextIcon';
 import HeadingIcon from './icons/HeadingIcon';
@@ -19,6 +18,7 @@ import ComponentIcon from './icons/ComponentIcon';
 interface BlockTypeMenuProps {
     onSelect: (type: Block['type']) => void;
     onClose: () => void;
+    triggerElement?: HTMLElement | null;
 }
 
 const MENU_ITEMS: { type: Block['type'], title: string, description: string, icon: React.ReactNode, category: 'basic' | 'advanced' | 'media' }[] = [
@@ -37,14 +37,16 @@ const MENU_ITEMS: { type: Block['type'], title: string, description: string, ico
     { type: 'image', title: 'Image', description: 'Upload or embed an image', icon: <PhotoIcon className="w-5 h-5" />, category: 'media' },
 ];
 
-const BlockTypeMenu: React.FC<BlockTypeMenuProps> = ({ onSelect, onClose }) => {
+const BlockTypeMenu: React.FC<BlockTypeMenuProps> = ({ onSelect, onClose, triggerElement }) => {
     const [query, setQuery] = useState('');
     const [selectedIndex, setSelectedIndex] = useState(0);
+    const [position, setPosition] = useState({ top: 0, left: 0 });
+    const searchInputRef = useRef<HTMLInputElement>(null);
     const ref = useRef<HTMLDivElement>(null);
 
     const filteredItems = useMemo(() => {
         if (!query) return MENU_ITEMS;
-        return MENU_ITEMS.filter(item => item.title.toLowerCase().includes(query.toLowerCase()));
+        return MENU_ITEMS.filter(item => item.title.toLowerCase().includes(query.toLowerCase()) || item.description.toLowerCase().includes(query.toLowerCase()));
     }, [query]);
 
     useEffect(() => {
@@ -81,6 +83,60 @@ const BlockTypeMenu: React.FC<BlockTypeMenuProps> = ({ onSelect, onClose }) => {
     }, [filteredItems, selectedIndex, onSelect, onClose]);
 
     useEffect(() => {
+        // Calculate position based on trigger element
+        if (triggerElement) {
+            const rect = triggerElement.getBoundingClientRect();
+            const viewportHeight = window.innerHeight;
+            const viewportWidth = window.innerWidth;
+            const maxMenuHeight = Math.min(viewportHeight * 0.4, 300); // Reduced to 40vh/300px to show more background
+            const menuWidth = 384; // w-96
+            const margin = 120; // Much larger margin to show more background
+            
+            // Calculate available space above and below trigger
+            const spaceBelow = viewportHeight - rect.bottom - margin;
+            const spaceAbove = rect.top - margin;
+            const minRequiredSpace = 200; // Minimum space needed for usable menu
+            
+            let top: number;
+            let left = rect.left;
+            
+            // Determine best vertical position
+            if (spaceBelow >= minRequiredSpace) {
+                // Position below trigger
+                top = rect.bottom + 8;
+            } else if (spaceAbove >= minRequiredSpace) {
+                // Position above trigger
+                top = rect.top - maxMenuHeight - 8;
+            } else {
+                // Neither position is ideal, center in viewport or use best available space
+                if (spaceBelow > spaceAbove) {
+                    // Use available space below, but constrain height
+                    top = rect.bottom + 8;
+                } else {
+                    // Use available space above, but constrain height
+                    top = Math.max(margin, rect.top - maxMenuHeight - 8);
+                }
+                
+                // If still not enough space, center vertically in viewport
+                if (Math.max(spaceBelow, spaceAbove) < minRequiredSpace) {
+                    top = (viewportHeight - maxMenuHeight) / 2;
+                }
+            }
+            
+            // Ensure menu stays within vertical viewport bounds
+            top = Math.max(margin, Math.min(top, viewportHeight - maxMenuHeight - margin));
+            
+            // Adjust horizontal position
+            if (left + menuWidth > viewportWidth - margin) {
+                left = viewportWidth - menuWidth - margin;
+            }
+            left = Math.max(margin, left);
+            
+            setPosition({ top, left });
+        }
+    }, [triggerElement]);
+
+    useEffect(() => {
         const handleClickOutside = (event: MouseEvent) => {
             if (ref.current && !ref.current.contains(event.target as Node)) {
                 onClose();
@@ -94,83 +150,117 @@ const BlockTypeMenu: React.FC<BlockTypeMenuProps> = ({ onSelect, onClose }) => {
     const advancedItems = filteredItems.filter(item => item.category === 'advanced');
     const mediaItems = filteredItems.filter(item => item.category === 'media');
 
-    return (
+    const menuContent = (
         <div
             ref={ref}
-            className="absolute z-10 top-full mt-2 w-96 max-h-[70vh] flex flex-col bg-gray-900/95 backdrop-blur-xl border border-gray-700/50 rounded-xl shadow-2xl overflow-hidden"
+            className="fixed z-[9999] w-96 max-h-[40vh] flex flex-col bg-gray-900/95 backdrop-blur-xl border border-gray-700/50 rounded-xl shadow-2xl overflow-y-auto isolate"
+            style={{
+                top: `${position.top}px`,
+                left: `${position.left}px`,
+                overscrollBehavior: 'contain'
+            }}
             role="dialog"
             aria-label="Block type selector"
         >
-            {/* Search Header */}
-            <div className="p-4 border-b border-gray-700/50 bg-gray-800/50">
-                <div className="relative">
-                    <input
-                        type="text"
-                        value={query}
-                        onChange={(e) => setQuery(e.target.value)}
-                        placeholder="Search for blocks..."
-                        className="w-full bg-gray-800/80 text-sm text-gray-100 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500/50 px-3 py-2 rounded-lg border border-gray-600/50 transition-all duration-200"
-                        autoFocus
-                    />
-                    {query && (
-                        <div className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-xs">
-                            {filteredItems.length} found
-                        </div>
-                    )}
-                </div>
+            {/* Search Input */}
+            <div className="border-b border-gray-700/30 p-3">
+                <input
+                    ref={searchInputRef}
+                    type="text"
+                    value={query}
+                    onChange={(e) => setQuery(e.target.value)}
+                    onKeyDown={(e) => {
+                        if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
+                            e.preventDefault();
+                            searchInputRef.current?.blur();
+                        }
+                    }}
+                    placeholder="Type to search..."
+                    className="w-full px-3 py-2 bg-gray-800/50 rounded-lg text-sm text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500/50"
+                />
             </div>
 
+            {/* Quick Access - Top 3 Items */}
+            {!query && (
+                <div className="p-4 border-b border-gray-700/30 bg-gray-800/30">
+                    <h3 className="text-xs font-semibold text-gray-400 mb-3 flex items-center gap-1.5 px-1">
+                        <span className="text-xs">⭐</span> Quick Access
+                    </h3>
+                    <div className="space-y-2">
+                        {MENU_ITEMS.slice(0, 3).map((item, index) => (
+                            <button
+                                key={item.type}
+                                onClick={() => onSelect(item.type)}
+                                className={`w-full flex items-center gap-3 p-3 rounded-lg text-left transition-all duration-150 ${
+                                    index === selectedIndex
+                                        ? 'bg-blue-500/20 text-blue-100 border border-blue-400/30'
+                                        : 'text-gray-300 hover:bg-gray-700/50 hover:text-white border border-transparent'
+                                }`}
+                            >
+                                <div className="flex-shrink-0 p-2 bg-gray-700/50 rounded-lg text-gray-300">
+                                    {item.icon}
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                    <div className="font-medium text-sm">{item.title}</div>
+                                    <div className="text-xs text-gray-400 mt-1">{item.description}</div>
+                                </div>
+                            </button>
+                        ))}
+                    </div>
+                </div>
+            )}
+
             {/* Block Categories */}
-            <div className="flex-1 overflow-y-auto p-4 space-y-6 scrollbar-thin scrollbar-thumb-gray-600 scrollbar-track-gray-800/50">
+            <div className="p-4 space-y-4">
                 {filteredItems.length === 0 ? (
-                    <div className="text-center py-8 text-gray-400">
-                        <div className="text-2xl mb-2">🔍</div>
-                        <p className="text-sm">No blocks found</p>
-                        <p className="text-xs mt-1">Try a different search term</p>
+                    <div className="text-center py-6 text-gray-400">
+                        <div className="text-xl mb-1">🔍</div>
+                        <p className="text-xs">No blocks found</p>
+                        <p className="text-xs mt-0.5 opacity-75">Try a different search</p>
                     </div>
                 ) : (
                     <>
                         {!query && basicItems.length > 0 && (
                             <div>
-                                <h3 className="text-sm font-semibold text-gray-300 mb-3 flex items-center gap-2">
-                                    <span>📝</span> Basic Blocks
-                                </h3>
-                                <div className="space-y-1">
-                                    {basicItems.map((item, index) => (
-                                        <button
-                                            key={item.type}
-                                            onClick={() => onSelect(item.type)}
-                                            className={`w-full flex items-center gap-3 p-3 rounded-lg text-left transition-all duration-150 ${
-                                                index === selectedIndex
-                                                    ? 'bg-blue-500/20 text-blue-100 border border-blue-400/30'
-                                                    : 'text-gray-300 hover:bg-gray-700/50 hover:text-white border border-transparent'
-                                            }`}
-                                        >
-                                            <div className="flex-shrink-0 p-2 bg-gray-700/50 rounded-lg text-gray-300">
-                                                {item.icon}
-                                            </div>
-                                            <div className="flex-1 min-w-0">
-                                                <div className="font-medium text-sm">{item.title}</div>
-                                                <div className="text-xs text-gray-400 mt-0.5">{item.description}</div>
-                                            </div>
-                                        </button>
-                                    ))}
-                                </div>
-                            </div>
+                                 <h3 className="text-xs font-semibold text-gray-400 mb-3 flex items-center gap-1.5 px-1">
+                                     <span className="text-xs">📝</span> All Basic
+                                 </h3>
+                                 <div className="space-y-2">
+                                     {basicItems.map((item, index) => (
+                                         <button
+                                             key={item.type}
+                                             onClick={() => onSelect(item.type)}
+                                             className={`w-full flex items-center gap-3 p-3 rounded-lg text-left transition-all duration-150 ${
+                                                 (index + 3) === selectedIndex
+                                                     ? 'bg-blue-500/20 text-blue-100 border border-blue-400/30'
+                                                     : 'text-gray-300 hover:bg-gray-700/50 hover:text-white border border-transparent'
+                                             }`}
+                                         >
+                                             <div className="flex-shrink-0 p-2 bg-gray-700/50 rounded-lg text-gray-300">
+                                                 {item.icon}
+                                             </div>
+                                             <div className="flex-1 min-w-0">
+                                                 <div className="font-medium text-sm">{item.title}</div>
+                                                 <div className="text-xs text-gray-400 mt-1">{item.description}</div>
+                                             </div>
+                                         </button>
+                                     ))}
+                                 </div>
+                             </div>
                         )}
 
                         {!query && advancedItems.length > 0 && (
                             <div>
-                                <h3 className="text-sm font-semibold text-gray-300 mb-3 flex items-center gap-2">
-                                    <span>⚡</span> Advanced Blocks
+                                <h3 className="text-xs font-semibold text-gray-400 mb-3 flex items-center gap-1.5 px-1">
+                                    <span className="text-xs">⚡</span> Advanced
                                 </h3>
-                                <div className="space-y-1">
+                                <div className="space-y-2">
                                     {advancedItems.map((item, index) => (
                                         <button
                                             key={item.type}
                                             onClick={() => onSelect(item.type)}
                                             className={`w-full flex items-center gap-3 p-3 rounded-lg text-left transition-all duration-150 ${
-                                                index + basicItems.length === selectedIndex
+                                                (index + basicItems.length + 3) === selectedIndex
                                                     ? 'bg-blue-500/20 text-blue-100 border border-blue-400/30'
                                                     : 'text-gray-300 hover:bg-gray-700/50 hover:text-white border border-transparent'
                                             }`}
@@ -180,7 +270,7 @@ const BlockTypeMenu: React.FC<BlockTypeMenuProps> = ({ onSelect, onClose }) => {
                                             </div>
                                             <div className="flex-1 min-w-0">
                                                 <div className="font-medium text-sm">{item.title}</div>
-                                                <div className="text-xs text-gray-400 mt-0.5">{item.description}</div>
+                                                <div className="text-xs text-gray-400 mt-1">{item.description}</div>
                                             </div>
                                         </button>
                                     ))}
@@ -190,16 +280,16 @@ const BlockTypeMenu: React.FC<BlockTypeMenuProps> = ({ onSelect, onClose }) => {
 
                         {!query && mediaItems.length > 0 && (
                             <div>
-                                <h3 className="text-sm font-semibold text-gray-300 mb-3 flex items-center gap-2">
-                                    <span>🎨</span> Media
+                                <h3 className="text-xs font-semibold text-gray-400 mb-2 flex items-center gap-1.5 px-1">
+                                    <span className="text-xs">🎨</span> Media
                                 </h3>
                                 <div className="space-y-1">
                                     {mediaItems.map((item, index) => (
                                         <button
                                             key={item.type}
                                             onClick={() => onSelect(item.type)}
-                                            className={`w-full flex items-center gap-3 p-3 rounded-lg text-left transition-all duration-150 ${
-                                                index + basicItems.length + advancedItems.length === selectedIndex
+                                            className={`w-full flex items-center gap-3 p-2.5 rounded-lg text-left transition-all duration-150 ${
+                                                (index + basicItems.length + advancedItems.length + 3) === selectedIndex
                                                     ? 'bg-blue-500/20 text-blue-100 border border-blue-400/30'
                                                     : 'text-gray-300 hover:bg-gray-700/50 hover:text-white border border-transparent'
                                             }`}
@@ -223,7 +313,7 @@ const BlockTypeMenu: React.FC<BlockTypeMenuProps> = ({ onSelect, onClose }) => {
                                     <button
                                         key={item.type}
                                         onClick={() => onSelect(item.type)}
-                                        className={`w-full flex items-center gap-3 p-3 rounded-lg text-left transition-all duration-150 ${
+                                        className={`w-full flex items-center gap-3 p-2.5 rounded-lg text-left transition-all duration-150 ${
                                             index === selectedIndex
                                                 ? 'bg-blue-500/20 text-blue-100 border border-blue-400/30'
                                                 : 'text-gray-300 hover:bg-gray-700/50 hover:text-white border border-transparent'
@@ -252,6 +342,9 @@ const BlockTypeMenu: React.FC<BlockTypeMenuProps> = ({ onSelect, onClose }) => {
             </div>
         </div>
     );
+
+    // Render in portal to avoid ancestor overflow issues
+    return createPortal(menuContent, document.body);
 };
 
 export default BlockTypeMenu;
