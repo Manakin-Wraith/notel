@@ -78,34 +78,44 @@ const CalendarView: React.FC<CalendarViewProps> = ({ pages, onAddPage, onDeleteP
     }
 
     return (
-        <main className="flex-1 flex flex-col p-8 md:p-12 overflow-y-auto">
+        <main className="flex-1 flex flex-col p-4 md:p-8 lg:p-12 overflow-y-auto">
              <div className="max-w-full mx-auto w-full flex-1 flex flex-col">
-                <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-8">
-                    <h1 className="text-4xl font-bold text-gray-100 mb-4 md:mb-0 flex items-center gap-4">
-                        <CalendarDaysIcon className="w-10 h-10" />
-                        <span>Calendar</span>
-                    </h1>
-                    <div className="flex items-center gap-4">
-                        <div className="flex items-center gap-2">
-                             <button onClick={handlePrev} className="p-2 rounded-md hover:bg-white/10" aria-label="Previous">
-                                <ChevronRightIcon className="w-5 h-5 rotate-180" />
-                            </button>
-                             <h2 className="text-xl font-semibold text-gray-200 w-48 text-center">{headerTitle}</h2>
-                             <button onClick={handleNext} className="p-2 rounded-md hover:bg-white/10" aria-label="Next">
-                                <ChevronRightIcon className="w-5 h-5" />
-                            </button>
-                        </div>
-                        <button onClick={handleSetToday} className="px-4 py-2 text-sm font-semibold text-gray-200 bg-black/30 border border-white/20 rounded-md hover:bg-white/10 transition-colors">
+                {/* Mobile-optimized header */}
+                <div className="flex flex-col space-y-4 mb-6 md:mb-8">
+                    {/* Title and navigation row */}
+                    <div className="flex items-center justify-between">
+                        <h1 className="text-2xl md:text-4xl font-bold text-gray-100 flex items-center gap-2 md:gap-4">
+                            <CalendarDaysIcon className="w-6 h-6 md:w-10 md:h-10" />
+                            <span>Calendar</span>
+                        </h1>
+                        <button onClick={handleSetToday} className="px-3 py-2 md:px-4 text-xs md:text-sm font-semibold text-gray-200 bg-black/30 border border-white/20 rounded-md hover:bg-white/10 transition-colors">
                             Today
                         </button>
+                    </div>
+                    
+                    {/* Navigation and controls row */}
+                    <div className="flex items-center justify-between gap-2">
+                        {/* Date navigation */}
+                        <div className="flex items-center gap-1 md:gap-2">
+                             <button onClick={handlePrev} className="p-2 md:p-3 rounded-md hover:bg-white/10 touch-manipulation" aria-label="Previous">
+                                <ChevronRightIcon className="w-4 h-4 md:w-5 md:h-5 rotate-180" />
+                            </button>
+                             <h2 className="text-base md:text-xl font-semibold text-gray-200 min-w-0 text-center px-2">{headerTitle}</h2>
+                             <button onClick={handleNext} className="p-2 md:p-3 rounded-md hover:bg-white/10 touch-manipulation" aria-label="Next">
+                                <ChevronRightIcon className="w-4 h-4 md:w-5 md:h-5" />
+                            </button>
+                        </div>
+                        
+                        {/* View mode selector */}
                         <div className="bg-black/30 border border-white/20 p-1 rounded-md flex items-center">
-                           <button onClick={() => setDisplayMode('month')} className={`px-3 py-1 text-sm rounded ${displayMode === 'month' ? 'bg-white/20' : 'hover:bg-white/10'}`}>Month</button>
-                           <button onClick={() => setDisplayMode('week')} className={`px-3 py-1 text-sm rounded ${displayMode === 'week' ? 'bg-white/20' : 'hover:bg-white/10'}`}>Week</button>
-                           <button onClick={() => setDisplayMode('day')} className={`px-3 py-1 text-sm rounded ${displayMode === 'day' ? 'bg-white/20' : 'hover:bg-white/10'}`}>Day</button>
+                           <button onClick={() => setDisplayMode('month')} className={`px-2 md:px-3 py-1 text-xs md:text-sm rounded touch-manipulation ${displayMode === 'month' ? 'bg-white/20' : 'hover:bg-white/10'}`}>M</button>
+                           <button onClick={() => setDisplayMode('week')} className={`px-2 md:px-3 py-1 text-xs md:text-sm rounded touch-manipulation ${displayMode === 'week' ? 'bg-white/20' : 'hover:bg-white/10'}`}>W</button>
+                           <button onClick={() => setDisplayMode('day')} className={`px-2 md:px-3 py-1 text-xs md:text-sm rounded touch-manipulation ${displayMode === 'day' ? 'bg-white/20' : 'hover:bg-white/10'}`}>D</button>
                         </div>
                     </div>
                 </div>
-                <div className="flex-1 flex flex-col">
+                {/* Calendar grid with mobile optimization */}
+                <div className="flex-1 flex flex-col min-h-0">
                     {renderGrid()}
                 </div>
             </div>

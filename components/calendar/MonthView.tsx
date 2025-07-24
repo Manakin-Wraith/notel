@@ -66,13 +66,20 @@ const MonthView: React.FC<MonthViewProps> = ({ pages, currentDate, onAddPage, on
     };
     
     return (
-        <div className="flex-1 flex flex-col">
-            <div className="grid grid-cols-7 text-center text-xs font-semibold text-gray-400 border-b border-white/10">
-                {WEEKDAYS.map(day => (
-                    <div key={day} className="py-2">{day}</div>
+        <div className="flex-1 flex flex-col min-h-0">
+            {/* Weekday headers - responsive */}
+            <div className="grid grid-cols-7 text-center text-xs md:text-sm font-semibold text-gray-400 border-b border-white/10">
+                {WEEKDAYS.map((day) => (
+                    <div key={day} className="py-2 md:py-3">
+                        {/* Show abbreviated on mobile, full on desktop */}
+                        <span className="md:hidden">{day.charAt(0)}</span>
+                        <span className="hidden md:inline">{day}</span>
+                    </div>
                 ))}
             </div>
-            <div className="calendar-grid flex-1">
+            
+            {/* Calendar grid - mobile optimized */}
+            <div className="calendar-grid flex-1 grid grid-cols-7 gap-px bg-white/5">
                 {monthGrid.flat().map(({ date, isCurrentMonth }, index) => {
                     const dateKey = date.toISOString().split('T')[0];
                     const dayPages = pagesByDate.get(dateKey) || [];
@@ -82,23 +89,36 @@ const MonthView: React.FC<MonthViewProps> = ({ pages, currentDate, onAddPage, on
                     return (
                         <div
                             key={index}
-                            className={`calendar-day-cell p-2 h-36 flex flex-col group ${isCurrentMonth ? '' : 'is-other-month'} ${isDragOver ? 'bg-purple-500/20' : ''}`}
+                            className={`calendar-day-cell bg-gray-900/50 p-1 md:p-2 h-16 md:h-24 lg:h-32 flex flex-col group relative touch-manipulation ${
+                                isCurrentMonth ? '' : 'is-other-month opacity-50'
+                            } ${isDragOver ? 'bg-purple-500/20' : ''} hover:bg-white/5 transition-colors`}
                             onDrop={(e) => handleDrop(e, date)}
                             onDragOver={(e) => handleDragOver(e, date)}
                             onDragLeave={() => setDragOverDate(null)}
                         >
-                            <div className="flex justify-between items-center">
-                                <span className={`text-sm font-semibold ${isToday ? 'bg-purple-600 text-white rounded-full flex items-center justify-center w-6 h-6' : 'text-gray-400'}`}>
+                            {/* Date number and add button */}
+                            <div className="flex justify-between items-start mb-1">
+                                <span className={`text-xs md:text-sm font-semibold leading-none ${
+                                    isToday 
+                                        ? 'bg-purple-600 text-white rounded-full flex items-center justify-center w-5 h-5 md:w-6 md:h-6 text-xs' 
+                                        : isCurrentMonth ? 'text-gray-300' : 'text-gray-500'
+                                }`}>
                                     {date.getDate()}
                                 </span>
                                 {isCurrentMonth && (
-                                    <button onClick={() => handleAdd(date)} className="add-event-btn p-1 text-gray-500 hover:text-white hover:bg-white/10 rounded-full" aria-label="Add event">
-                                        <PlusIcon className="w-4 h-4" />
+                                    <button 
+                                        onClick={() => handleAdd(date)} 
+                                        className="add-event-btn p-1 text-gray-500 hover:text-white hover:bg-white/20 rounded-full opacity-0 group-hover:opacity-100 md:opacity-100 transition-opacity touch-manipulation" 
+                                        aria-label="Add event"
+                                    >
+                                        <PlusIcon className="w-3 h-3 md:w-4 md:h-4" />
                                     </button>
                                 )}
                             </div>
-                            <div className="mt-1 space-y-1 overflow-y-auto flex-1">
-                                {dayPages.map(page => (
+                            
+                            {/* Events container - mobile optimized */}
+                            <div className="flex-1 min-h-0 space-y-0.5 overflow-hidden">
+                                {dayPages.slice(0, 2).map((page) => (
                                     <CalendarEvent
                                         key={page.id}
                                         page={page}
@@ -108,6 +128,12 @@ const MonthView: React.FC<MonthViewProps> = ({ pages, currentDate, onAddPage, on
                                         isDragging={draggedPageId === page.id}
                                     />
                                 ))}
+                                {/* Show indicator for more events */}
+                                {dayPages.length > 2 && (
+                                    <div className="text-xs text-gray-400 px-1 py-0.5 bg-white/10 rounded text-center">
+                                        +{dayPages.length - 2} more
+                                    </div>
+                                )}
                             </div>
                         </div>
                     );
