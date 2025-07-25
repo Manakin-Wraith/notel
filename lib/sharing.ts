@@ -158,15 +158,35 @@ export class SharingService {
   async getResourceAccess(resourceId: string, resourceType: 'page' | 'event'): Promise<ShareAccess[]> {
     const { data, error } = await supabase
       .from('share_access')
-      .select(`
-        *,
-        user_profiles!user_id(*)
-      `)
+      .select('*')
       .eq('resource_id', resourceId)
       .eq('resource_type', resourceType);
 
     if (error) throw error;
-    return data.map(item => this.dbShareAccessToShareAccess(item));
+    
+    // For each access record, try to get user profile if it's not a pending invitation
+    const accessWithProfiles = await Promise.all(
+      data.map(async (item) => {
+        let userProfile = null;
+        
+        // Only try to fetch user profile if user_id is a valid UUID (not pending)
+        if (!item.user_id.startsWith('pending_')) {
+          const { data: profile } = await supabase
+            .from('user_profiles')
+            .select('*')
+            .eq('id', item.user_id)
+            .single();
+          userProfile = profile;
+        }
+        
+        return {
+          ...item,
+          user_profiles: userProfile
+        };
+      })
+    );
+    
+    return accessWithProfiles.map(item => this.dbShareAccessToShareAccess(item));
   }
 
   // Remove user access
