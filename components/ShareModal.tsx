@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import type { ShareModalProps, ShareLink, ShareAccess, SharePermission } from '../types';
 import { sharingService } from '../lib/sharing';
+import { emailService } from '../lib/email';
 import { useAuth } from '../contexts/AuthContext';
 
 const ShareModal: React.FC<ShareModalProps> = ({
@@ -99,25 +100,46 @@ const ShareModal: React.FC<ShareModalProps> = ({
     setIsInviting(true);
     
     try {
-      await sharingService.shareWithUser(
-        resourceId,
-        resourceType,
-        inviteEmail.trim(),
-        invitePermission
-      );
+      // 1. Ensure we have a public share link
+      let currentShareLink = shareLink;
+      if (!currentShareLink) {
+        currentShareLink = await sharingService.createShareLink(
+          resourceId,
+          resourceType,
+          'view',
+          true // public
+        );
+        setShareLink(currentShareLink);
+      }
       
-      // Success feedback
-      setInviteSuccess(true);
-      setInviteEmail('');
-      await loadSharingData(); // Refresh the access list
+      // 2. Generate share URL
+      const shareUrl = sharingService.generateShareUrl(currentShareLink);
       
-      // Auto-hide success message after 3 seconds
-      setTimeout(() => setInviteSuccess(false), 3000);
+      // 3. Send email with share link
+      const emailResult = await emailService.sendShareEmail({
+        recipientEmail: inviteEmail.trim(),
+        shareUrl,
+        contentTitle: resourceTitle || `Shared ${resourceType}`,
+        contentType: resourceType,
+        senderName: user.name || 'Someone',
+        senderEmail: user.email || ''
+      });
+      
+      if (emailResult.success) {
+        // Success feedback
+        setInviteSuccess(true);
+        setInviteEmail('');
+        
+        // Auto-hide success message after 3 seconds
+        setTimeout(() => setInviteSuccess(false), 3000);
+      } else {
+        throw new Error(emailResult.error || 'Failed to send email');
+      }
     } catch (error) {
-      console.error('Failed to invite user:', error);
+      console.error('Failed to send share email:', error);
       
       // Error feedback
-      const errorMessage = error instanceof Error ? error.message : 'Failed to send invitation';
+      const errorMessage = error instanceof Error ? error.message : 'Failed to send email';
       setInviteError(errorMessage);
       
       // Auto-hide error message after 5 seconds
@@ -260,7 +282,7 @@ const ShareModal: React.FC<ShareModalProps> = ({
               <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
               </svg>
-              <span className="font-medium text-white">Invite people</span>
+              <span className="font-medium text-white">Share via email</span>
             </div>
 
             <div className="space-y-3">
@@ -280,9 +302,9 @@ const ShareModal: React.FC<ShareModalProps> = ({
                   className="text-sm bg-gray-800 border border-gray-600 rounded px-2 py-1 text-white focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
                   disabled={isInviting}
                 >
-                  <option value="view">Can view</option>
+                  <option value="view">View only</option>
                   <option value="edit">Can edit</option>
-                  <option value="admin">Can admin</option>
+                  <option value="admin">Full access</option>
                 </select>
                 
                 <button
@@ -296,10 +318,10 @@ const ShareModal: React.FC<ShareModalProps> = ({
                         <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                         <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                       </svg>
-                      <span>Inviting...</span>
+                      <span>Sending...</span>
                     </>
                   ) : (
-                    'Invite'
+                    'Send Email'
                   )}
                 </button>
               </div>
@@ -310,7 +332,7 @@ const ShareModal: React.FC<ShareModalProps> = ({
                   <svg className="w-4 h-4 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                   </svg>
-                  <span className="text-sm text-green-400">Invitation sent successfully!</span>
+                  <span className="text-sm text-green-400">Email sent successfully!</span>
                 </div>
               )}
               
