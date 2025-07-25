@@ -6,6 +6,7 @@ import CalendarIcon from './icons/CalendarIcon';
 import CheckCircleIcon from './icons/CheckCircleIcon';
 import PageIcon from './icons/PageIcon';
 import IconPicker from './IconPicker';
+import ShareButton from './ShareButton';
 
 interface EventModalProps {
   isOpen: boolean;
@@ -193,12 +194,23 @@ const EventModal: React.FC<EventModalProps> = ({
               {event ? 'Edit Event' : 'Create Event'}
             </h2>
           </div>
-          <button
-            onClick={onClose}
-            className="p-2 text-gray-400 hover:text-white hover:bg-gray-800 rounded-lg transition-colors"
-          >
-            <XIcon className="w-5 h-5" />
-          </button>
+          <div className="flex items-center gap-2">
+            {event && (
+              <ShareButton
+                resourceId={event.id}
+                resourceType="event"
+                resourceTitle={event.title}
+                size="sm"
+                className="text-gray-400 hover:text-gray-300"
+              />
+            )}
+            <button
+              onClick={onClose}
+              className="p-2 text-gray-400 hover:text-white hover:bg-gray-800 rounded-lg transition-colors"
+            >
+              <XIcon className="w-5 h-5" />
+            </button>
+          </div>
         </div>
 
         {/* Form */}

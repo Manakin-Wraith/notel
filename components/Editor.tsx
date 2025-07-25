@@ -21,6 +21,7 @@ import DragHandleIcon from './icons/DragHandleIcon';
 import PlusIcon from './icons/PlusIcon';
 import MagicIcon from './icons/MagicIcon';
 import ComponentPreview from './ComponentPreview';
+import ShareButton from './ShareButton';
 
 interface EditorProps {
   page: Page | null;
@@ -778,6 +779,15 @@ const Editor: React.FC<EditorProps> = ({ page, onUpdateTitle, onUpdateContent, o
               </button>
             )}
             {showStatusPicker && <StatusPicker onSelect={handleStatusSelect} onClose={() => setShowStatusPicker(false)} />}
+          </div>
+          <div className="ml-auto">
+            <ShareButton
+              resourceId={page.id}
+              resourceType="page"
+              resourceTitle={title || 'Untitled'}
+              size="sm"
+              className="text-gray-400 hover:text-gray-300"
+            />
           </div>
         </div>
         

@@ -98,11 +98,13 @@ const Agenda: React.FC<AgendaProps> = ({ pages, events, onSelectPage, onSelectEv
   
   const hasAgendaItems = agendaItems.length > 0;
 
-  const formatDate = (dateString: string) => {
-      return new Date(dateString).toLocaleDateString('en-US', {
-          month: 'short',
-          day: 'numeric',
-      });
+  const formatDateWithDay = (dateString: string) => {
+    const date = new Date(dateString);
+    return date.toLocaleDateString('en-US', {
+      weekday: 'short', // Thu, Fri, etc.
+      month: 'short',   // Jul, Aug, etc.
+      day: 'numeric'    // 25, 26, etc.
+    });
   };
 
   const getStatusIcon = (item: AgendaItem) => {
@@ -202,7 +204,7 @@ const Agenda: React.FC<AgendaProps> = ({ pages, events, onSelectPage, onSelectEv
                 </div>
                 <div className="text-right flex-shrink-0">
                   <span className="text-xs text-gray-500 group-hover:text-gray-400 transition-colors">
-                    {formatDate(item.date)}
+                    {formatDateWithDay(item.date)}
                   </span>
                   {item.type === 'event' && item.allDay && (
                     <div className="text-xs text-gray-600 mt-1">All day</div>

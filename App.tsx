@@ -16,6 +16,7 @@ import { databaseService } from './lib/database';
 import { getCurrentUser } from './lib/supabase';
 import Agenda from './components/Agenda';
 import Board from './components/Board';
+import Router from './components/Router';
 
 const createBlockId = () => `${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
 
@@ -899,7 +900,9 @@ const App: React.FC = () => {
   return (
     <ProductionErrorBoundary>
       <AuthProvider>
-        <AppContent />
+        <Router>
+          <AppContent />
+        </Router>
       </AuthProvider>
     </ProductionErrorBoundary>
   );
