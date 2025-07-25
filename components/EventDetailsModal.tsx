@@ -5,6 +5,7 @@ import CalendarDaysIcon from './icons/CalendarDaysIcon';
 import CalendarIcon from './icons/CalendarIcon';
 import ComponentIcon from './icons/ComponentIcon';
 import TrashIcon from './icons/TrashIcon';
+import ShareButton from './ShareButton';
 
 interface EventDetailsModalProps {
   isOpen: boolean;
@@ -83,12 +84,21 @@ const EventDetailsModal: React.FC<EventDetailsModalProps> = ({
             <CalendarDaysIcon className="w-6 h-6 text-purple-400" />
             <h2 className="text-xl font-semibold text-white">Event Details</h2>
           </div>
-          <button
-            onClick={onClose}
-            className="p-2 text-gray-400 hover:text-white hover:bg-gray-800 rounded-lg transition-colors"
-          >
-            <XIcon className="w-5 h-5" />
-          </button>
+          <div className="flex items-center gap-2">
+            <ShareButton
+              resourceId={event.id}
+              resourceType="event"
+              resourceTitle={event.title}
+              size="sm"
+              className="text-gray-400 hover:text-gray-300"
+            />
+            <button
+              onClick={onClose}
+              className="p-2 text-gray-400 hover:text-white hover:bg-gray-800 rounded-lg transition-colors"
+            >
+              <XIcon className="w-5 h-5" />
+            </button>
+          </div>
         </div>
 
         {/* Content */}

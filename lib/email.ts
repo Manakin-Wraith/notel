@@ -26,35 +26,38 @@ export class EmailService {
   }
 
   /**
-   * Send a share email with minimalist, clean content
+   * Send a share email using Supabase Edge Function (more reliable than SMTP)
    */
   async sendShareEmail(data: ShareEmailData): Promise<EmailResponse> {
     try {
-      // For now, we'll use a simple approach with Supabase Edge Function
-      // This can be enhanced with SendGrid, Mailgun, etc. later
+      // Use Supabase Edge Function for reliable email delivery
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+      const functionUrl = `${supabaseUrl}/functions/v1/send-share-email`;
       
-      const emailContent = this.generateEmailContent(data);
-      
-      // Call Supabase Edge Function (to be created)
-      const response = await fetch('/api/send-share-email', {
+      const response = await fetch(functionUrl, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+          'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY,
         },
         body: JSON.stringify({
-          to: data.recipientEmail,
-          subject: this.generateSubject(data),
-          html: emailContent.html,
-          text: emailContent.text,
+          recipientEmail: data.recipientEmail,
+          shareUrl: data.shareUrl,
+          contentTitle: data.contentTitle,
+          contentType: data.contentType,
+          senderName: data.senderName,
+          senderEmail: data.senderEmail
         }),
       });
 
       if (!response.ok) {
-        throw new Error(`Email service error: ${response.status}`);
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(`Email service error: ${response.status} - ${errorData.error || 'Unknown error'}`);
       }
 
       const result = await response.json();
-      return { success: true };
+      return { success: result.success };
     } catch (error) {
       console.error('Failed to send share email:', error);
       return { 
