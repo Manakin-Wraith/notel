@@ -104,12 +104,20 @@ const SharedContentViewer: React.FC<SharedContentViewerProps> = ({
     if (!user || !content || resourceType !== 'page') return;
 
     try {
-      // Create a copy of the page in the user's workspace
+      const originalPage = content as Page;
+      const newPageId = `${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
+      
+      // Create a copy of the page with new IDs for blocks
       const pageCopy: Page = {
-        ...content as Page,
-        id: `${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
+        ...originalPage,
+        id: newPageId,
         parentId: null,
-        position: 0
+        position: 0,
+        // Create new block IDs to avoid conflicts
+        content: originalPage.content.map(block => ({
+          ...block,
+          id: `${Date.now()}-${Math.random().toString(36).substring(2, 9)}`
+        }))
       };
 
       await databaseService.createPage(pageCopy);

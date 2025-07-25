@@ -22,9 +22,11 @@ CREATE TABLE IF NOT EXISTS share_access (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   resource_id TEXT NOT NULL,
   resource_type TEXT NOT NULL CHECK (resource_type IN ('page', 'event')),
-  user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  user_id TEXT NOT NULL, -- Can be UUID for existing users or 'pending_email' for invitations
+  user_email TEXT, -- Store email for pending invitations
   permission TEXT NOT NULL CHECK (permission IN ('view', 'edit', 'admin')),
   invited_by UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  is_pending BOOLEAN DEFAULT false, -- Track if this is a pending invitation
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW(),
   

@@ -98,8 +98,16 @@ export class SharingService {
       .eq('email', userEmail)
       .single();
 
+    let userId: string;
+    let isPending: boolean;
     if (userError || !targetUser) {
-      throw new Error(`User with email ${userEmail} not found. They need to sign up and create a profile first.`);
+      // User doesn't exist yet - create pending invitation
+      userId = `pending_${userEmail}`;
+      isPending = true;
+    } else {
+      // User exists, use their actual ID
+      userId = targetUser.id;
+      isPending = false;
     }
 
     // Check if access already exists
@@ -108,7 +116,7 @@ export class SharingService {
       .select('*')
       .eq('resource_id', resourceId)
       .eq('resource_type', resourceType)
-      .eq('user_id', targetUser.id)
+      .eq('user_id', userId)
       .single();
 
     if (existing) {
@@ -126,13 +134,15 @@ export class SharingService {
       if (error) throw error;
       return this.dbShareAccessToShareAccess(data);
     } else {
-      // Create new access
+      // Create new access (works for both existing users and pending invitations)
       const { data, error } = await supabase
         .from('share_access')
         .insert({
           resource_id: resourceId,
           resource_type: resourceType,
-          user_id: targetUser.id,
+          user_id: userId, // This will be either a real UUID or pending_email format
+          user_email: isPending ? userEmail : null, // Store email for pending invitations
+          is_pending: isPending,
           permission,
           invited_by: currentUser.id
         })

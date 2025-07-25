@@ -19,6 +19,11 @@ const ShareModal: React.FC<ShareModalProps> = ({
   const [invitePermission, setInvitePermission] = useState<SharePermission>('view');
   const [linkPermission, setLinkPermission] = useState<SharePermission>('view');
   const [isPublic, setIsPublic] = useState(true);
+  
+  // Email invitation feedback states
+  const [inviteSuccess, setInviteSuccess] = useState(false);
+  const [inviteError, setInviteError] = useState<string | null>(null);
+  const [isInviting, setIsInviting] = useState(false);
 
   useEffect(() => {
     if (isOpen && user) {
@@ -88,7 +93,11 @@ const ShareModal: React.FC<ShareModalProps> = ({
   const handleInviteUser = async () => {
     if (!inviteEmail.trim() || !user) return;
     
-    setIsLoading(true);
+    // Clear previous feedback
+    setInviteSuccess(false);
+    setInviteError(null);
+    setIsInviting(true);
+    
     try {
       await sharingService.shareWithUser(
         resourceId,
@@ -96,12 +105,25 @@ const ShareModal: React.FC<ShareModalProps> = ({
         inviteEmail.trim(),
         invitePermission
       );
+      
+      // Success feedback
+      setInviteSuccess(true);
       setInviteEmail('');
       await loadSharingData(); // Refresh the access list
+      
+      // Auto-hide success message after 3 seconds
+      setTimeout(() => setInviteSuccess(false), 3000);
     } catch (error) {
       console.error('Failed to invite user:', error);
+      
+      // Error feedback
+      const errorMessage = error instanceof Error ? error.message : 'Failed to send invitation';
+      setInviteError(errorMessage);
+      
+      // Auto-hide error message after 5 seconds
+      setTimeout(() => setInviteError(null), 5000);
     } finally {
-      setIsLoading(false);
+      setIsInviting(false);
     }
   };
 
@@ -248,7 +270,7 @@ const ShareModal: React.FC<ShareModalProps> = ({
                 value={inviteEmail}
                 onChange={(e) => setInviteEmail(e.target.value)}
                 className="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-md text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500 text-sm"
-                disabled={isLoading}
+                disabled={isInviting}
               />
               
               <div className="flex space-x-2">
@@ -256,7 +278,7 @@ const ShareModal: React.FC<ShareModalProps> = ({
                   value={invitePermission}
                   onChange={(e) => setInvitePermission(e.target.value as SharePermission)}
                   className="text-sm bg-gray-800 border border-gray-600 rounded px-2 py-1 text-white focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
-                  disabled={isLoading}
+                  disabled={isInviting}
                 >
                   <option value="view">Can view</option>
                   <option value="edit">Can edit</option>
@@ -265,12 +287,42 @@ const ShareModal: React.FC<ShareModalProps> = ({
                 
                 <button
                   onClick={handleInviteUser}
-                  disabled={isLoading || !inviteEmail.trim()}
-                  className="flex-1 bg-gray-800 text-gray-300 px-4 py-2 rounded-md hover:bg-gray-700 transition-colors disabled:opacity-50 text-sm font-medium border border-gray-600"
+                  disabled={isInviting || !inviteEmail.trim()}
+                  className="flex-1 bg-gray-800 text-gray-300 px-4 py-2 rounded-md hover:bg-gray-700 transition-colors disabled:opacity-50 text-sm font-medium border border-gray-600 flex items-center justify-center space-x-2"
                 >
-                  Invite
+                  {isInviting ? (
+                    <>
+                      <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-gray-300" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                      </svg>
+                      <span>Inviting...</span>
+                    </>
+                  ) : (
+                    'Invite'
+                  )}
                 </button>
               </div>
+              
+              {/* Success Message */}
+              {inviteSuccess && (
+                <div className="flex items-center space-x-2 p-3 bg-green-900/20 border border-green-700 rounded-md">
+                  <svg className="w-4 h-4 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                  </svg>
+                  <span className="text-sm text-green-400">Invitation sent successfully!</span>
+                </div>
+              )}
+              
+              {/* Error Message */}
+              {inviteError && (
+                <div className="flex items-start space-x-2 p-3 bg-red-900/20 border border-red-700 rounded-md">
+                  <svg className="w-4 h-4 text-red-400 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  <span className="text-sm text-red-400">{inviteError}</span>
+                </div>
+              )}
             </div>
           </div>
 
