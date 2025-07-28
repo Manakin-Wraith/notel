@@ -12,11 +12,16 @@ import EventDetailsModal from './components/EventDetailsModal';
 import { ICONS } from './components/icons/icon-constants';
 import HamburgerIcon from './components/icons/HamburgerIcon';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
+import { NotificationProvider } from './contexts/NotificationContext';
+import NotificationContainer from './components/NotificationContainer';
+import NotificationBell from './components/NotificationBell';
 import { databaseService } from './lib/database';
-import { getCurrentUser } from './lib/supabase';
+import { getCurrentUser, supabase } from './lib/supabase';
+import { NotificationService } from './lib/notifications';
 import Agenda from './components/Agenda';
 import Board from './components/Board';
 import Router from './components/Router';
+import SettingsModal from './components/SettingsModal';
 
 const createBlockId = () => `${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
 
@@ -144,7 +149,7 @@ const getInitialPages = (): Page[] => {
 const getRandomIcon = () => ICONS[Math.floor(Math.random() * ICONS.length)];
 
 function AppContent() {
-    const { user, loading: authLoading, signOut } = useAuth();
+    const { user, loading: authLoading } = useAuth();
     const [pages, setPages] = useState<Page[]>(getInitialPages());
     const [events, setEvents] = useState<Event[]>([
     // Sample events to demonstrate unified Agenda with icons
@@ -175,7 +180,7 @@ function AppContent() {
   ]);
     const [activePageId, setActivePageId] = useState<string | null>(null);
     const [isPaletteOpen, setIsPaletteOpen] = useState(false);
-    const [viewMode, setViewMode] = useState<'editor' | 'agenda' | 'board' | 'calendar'>('editor');
+    const [viewMode, setViewMode] = useState<'editor' | 'agenda' | 'board' | 'calendar'>('agenda'); // Default to agenda as requested
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
     const [isMobile, setIsMobile] = useState(false);
     const [loading, setLoading] = useState(false);
@@ -187,6 +192,76 @@ function AppContent() {
     const [eventDetailsModalOpen, setEventDetailsModalOpen] = useState(false);
     const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
     const [eventModalInitialDate, setEventModalInitialDate] = useState<string | undefined>();
+    const [settingsModalOpen, setSettingsModalOpen] = useState(false);
+
+  // Load user settings from database
+  const loadUserSettings = useCallback(async () => {
+    if (!user) {
+      console.log('🔧 loadUserSettings: No user, skipping');
+      return;
+    }
+    
+    console.log('🔧 loadUserSettings: Loading settings for user:', user.id);
+    
+    try {
+      const { data: settings, error } = await supabase
+        .from('user_settings')
+        .select('default_view')
+        .eq('user_id', user.id)
+        .single();
+      
+      console.log('🔧 loadUserSettings: Database response:', { settings, error });
+      
+      if (error && error.code !== 'PGRST116') { // PGRST116 = no rows returned
+        console.error('🔧 loadUserSettings: Error loading user settings:', error);
+        return;
+      }
+      
+      if (settings?.default_view) {
+        console.log('🔧 loadUserSettings: Setting view mode to:', settings.default_view);
+        setViewMode(settings.default_view as 'editor' | 'agenda' | 'board' | 'calendar');
+      } else {
+        console.log('🔧 loadUserSettings: No settings found, keeping default');
+      }
+    } catch (error) {
+      console.error('🔧 loadUserSettings: Catch error:', error);
+    }
+  }, [user]);
+
+  // Save user settings to database
+  const saveUserSettings = useCallback(async (defaultView: 'editor' | 'agenda' | 'board' | 'calendar') => {
+    if (!user) {
+      console.log('🔧 saveUserSettings: No user, skipping');
+      return;
+    }
+    
+    console.log('🔧 saveUserSettings: Saving setting:', defaultView, 'for user:', user.id);
+    
+    try {
+      const { error } = await supabase
+        .from('user_settings')
+        .upsert({
+          user_id: user.id,
+          default_view: defaultView
+        }, {
+          onConflict: 'user_id'
+        });
+      
+      console.log('🔧 saveUserSettings: Database upsert result:', { error });
+      
+      if (error) {
+        console.error('🔧 saveUserSettings: Error saving user settings:', error);
+        return;
+      }
+      
+      console.log('🔧 saveUserSettings: Successfully saved, now applying view mode:', defaultView);
+      // Apply the setting immediately
+      setViewMode(defaultView);
+      console.log('🔧 saveUserSettings: View mode set to:', defaultView);
+    } catch (error) {
+      console.error('🔧 saveUserSettings: Catch error:', error);
+    }
+  }, [user]);
 
   // Load data from Supabase when user is authenticated
   useEffect(() => {
@@ -313,6 +388,23 @@ function AppContent() {
     };
 
     loadData();
+    
+    // Load user settings after data is loaded
+    if (user) {
+      console.log('🔧 useEffect: Calling loadUserSettings for user:', user.id);
+      loadUserSettings();
+    } else {
+      console.log('🔧 useEffect: No user, skipping loadUserSettings');
+    }
+  }, [user, loadUserSettings]);
+
+  // Initialize notification system when user is authenticated
+  useEffect(() => {
+    if (user) {
+      const notificationService = NotificationService.getInstance();
+      notificationService.initializeServiceWorker();
+      notificationService.startNotificationProcessor();
+    }
   }, [user]);
 
   // Save to Supabase whenever pages change (if user is authenticated)
@@ -643,6 +735,14 @@ function AppContent() {
     // selectedEvent is already set
   }, []);
 
+  const handleOpenSettings = useCallback(() => {
+    setSettingsModalOpen(true);
+  }, []);
+
+  const handleCloseSettings = useCallback(() => {
+    setSettingsModalOpen(false);
+  }, []);
+
   const handleMovePage = useCallback(async (draggedId: string, targetId: string, position: 'top' | 'bottom' | 'middle') => {
     // First, update local state immediately and capture the new state for database sync
     let updatedPagesForSync: Page[] = [];
@@ -810,7 +910,8 @@ function AppContent() {
   }
 
   return (
-    <div className="flex h-screen w-full bg-[#111111] text-gray-200 relative">
+    <NotificationProvider onNavigateToEvent={handleSelectEvent}>
+      <div className="flex h-screen w-full bg-[#111111] text-gray-200 relative">
       {/* Mobile hamburger button */}
       {isMobile && (
         <button
@@ -823,14 +924,10 @@ function AppContent() {
         </button>
       )}
 
-      {/* Sign out button */}
-      <button
-        onClick={signOut}
-        className="fixed top-4 right-4 z-50 p-2 bg-black/50 backdrop-blur-xl border border-white/10 rounded-lg text-gray-200 hover:bg-white/10 transition-colors text-sm"
-        title="Sign out"
-      >
-        Sign Out
-      </button>
+      {/* Notification Bell */}
+      <div className="fixed top-4 right-4 z-50">
+        <NotificationBell />
+      </div>
 
       {/* Mobile overlay */}
       {isMobile && isSidebarOpen && (
@@ -857,6 +954,7 @@ function AppContent() {
           setViewMode(mode);
           if (isMobile) setIsSidebarOpen(false);
         }}
+        onOpenSettings={handleOpenSettings}
         isMobile={isMobile}
         isOpen={!isMobile || isSidebarOpen}
       />
@@ -892,7 +990,18 @@ function AppContent() {
         onDelete={handleDeleteEvent}
         event={selectedEvent}
       />
-    </div>
+      
+      {/* Settings Modal */}
+      <SettingsModal
+        isOpen={settingsModalOpen}
+        onClose={handleCloseSettings}
+        onSave={saveUserSettings}
+      />
+      
+      {/* Notification Container for Toast Notifications */}
+      <NotificationContainer />
+      </div>
+    </NotificationProvider>
   );
 };
 

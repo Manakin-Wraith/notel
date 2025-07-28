@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import type { Event } from '../types';
+import type { Reminder } from '../types/notifications';
+import { NotificationService } from '../lib/notifications';
 import XIcon from './icons/XIcon';
 import CalendarDaysIcon from './icons/CalendarDaysIcon';
 import CalendarIcon from './icons/CalendarIcon';
@@ -7,6 +9,7 @@ import CheckCircleIcon from './icons/CheckCircleIcon';
 import PageIcon from './icons/PageIcon';
 import IconPicker from './IconPicker';
 import ShareButton from './ShareButton';
+import ReminderSettings from './ReminderSettings';
 
 interface EventModalProps {
   isOpen: boolean;
@@ -38,6 +41,7 @@ const EventModal: React.FC<EventModalProps> = ({
     priority: 'medium' as Event['priority'],
   });
 
+  const [reminders, setReminders] = useState<Reminder[]>([]);
   const [showIconPicker, setShowIconPicker] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -62,6 +66,9 @@ const EventModal: React.FC<EventModalProps> = ({
           status: event.status,
           priority: event.priority,
         });
+        
+        // Initialize reminders from existing event
+        setReminders(event.reminders || []);
       } else {
         // Create mode - use initial date or current date
         const date = initialDate ? new Date(initialDate) : new Date();
@@ -139,9 +146,18 @@ const EventModal: React.FC<EventModalProps> = ({
         allDay: formData.allDay,
         status: formData.status,
         priority: formData.priority,
+        reminders: reminders,
       };
 
       await onSave(eventData);
+      
+      // Schedule notifications for the event
+      if (reminders.length > 0) {
+        const notificationService = NotificationService.getInstance();
+        const fullEventData = { ...eventData, id: event?.id || 'temp-id' } as Event;
+        await notificationService.scheduleEventNotifications(fullEventData, reminders);
+      }
+      
       onClose();
     } catch (error) {
       console.error('Failed to save event:', error);
@@ -397,6 +413,12 @@ const EventModal: React.FC<EventModalProps> = ({
               </select>
             </div>
           </div>
+
+          {/* Reminder Settings */}
+          <ReminderSettings
+            reminders={reminders}
+            onChange={setReminders}
+          />
 
           {/* Submit Error */}
           {errors.submit && (

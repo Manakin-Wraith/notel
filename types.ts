@@ -31,6 +31,9 @@ export interface Page {
   status: 'todo' | 'in-progress' | 'done' | null;
 }
 
+// Import notification types
+import type { Reminder } from './types/notifications';
+
 export interface Event {
   id: string;
   title: string;
@@ -42,6 +45,7 @@ export interface Event {
   status: 'scheduled' | 'completed' | 'cancelled';
   priority: 'low' | 'medium' | 'high';
   linkedPageId?: string; // Optional reference to a related page
+  reminders?: Reminder[]; // Notification reminders for this event
   createdAt: string;
   updatedAt: string;
 }
