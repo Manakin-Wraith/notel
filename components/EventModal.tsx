@@ -202,7 +202,7 @@ const EventModal: React.FC<EventModalProps> = ({
       />
       
       {/* Modal */}
-      <div className="relative w-full max-w-2xl mx-4 bg-gray-900 rounded-xl shadow-2xl border border-gray-700">
+      <div className="relative w-full max-w-3xl mx-4 bg-gray-900 rounded-xl shadow-2xl border border-gray-700">
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b border-gray-700">
           <div className="flex items-center gap-3">
@@ -487,14 +487,14 @@ const EventModal: React.FC<EventModalProps> = ({
                 <button
                   type="button"
                   onClick={onClose}
-                  className="px-4 py-2 text-sm text-gray-400 hover:text-gray-300 hover:bg-gray-800/50 rounded-md transition-all duration-200"
+                  className="px-3 py-1.5 text-sm text-gray-400 hover:text-gray-300 hover:bg-gray-800/50 rounded-md transition-all duration-200"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={isSubmitting}
-                  className="px-4 py-2 bg-white text-black hover:bg-gray-100 disabled:bg-gray-300 disabled:cursor-not-allowed rounded-md transition-all duration-200 text-sm font-medium min-w-[100px]"
+                  className="px-3 py-1.5 bg-white text-black hover:bg-gray-100 disabled:bg-gray-300 disabled:cursor-not-allowed rounded-md transition-all duration-200 text-sm font-medium min-w-[100px]"
                 >
                   {isSubmitting ? 'Saving...' : (event ? 'Save' : 'Create')}
                 </button>
