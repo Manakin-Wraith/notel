@@ -3,7 +3,7 @@ import type { Event } from '../types';
 import XIcon from './icons/XIcon';
 import CalendarDaysIcon from './icons/CalendarDaysIcon';
 import CalendarIcon from './icons/CalendarIcon';
-import ComponentIcon from './icons/ComponentIcon';
+
 import TrashIcon from './icons/TrashIcon';
 import ShareButton from './ShareButton';
 import CalendarLinkButton from './CalendarLinkButton';
@@ -78,7 +78,7 @@ const EventDetailsModal: React.FC<EventDetailsModalProps> = ({
       />
       
       {/* Modal */}
-      <div className="relative w-full max-w-lg mx-4 bg-gray-900 rounded-xl shadow-2xl border border-gray-700">
+      <div className="relative w-full max-w-2xl mx-4 bg-gray-900 rounded-xl shadow-2xl border border-gray-700">
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b border-gray-700">
           <div className="flex items-center gap-3">
@@ -184,38 +184,45 @@ const EventDetailsModal: React.FC<EventDetailsModalProps> = ({
           </div>
 
           {/* Actions */}
-          <div className="flex items-center justify-between pt-4 border-t border-gray-700">
-            <div className="flex items-center gap-3">
-              <button
-                onClick={handleDelete}
-                className="flex items-center gap-2 px-4 py-2 text-red-400 hover:text-red-300 hover:bg-red-900/20 rounded-lg transition-colors"
-              >
-                <TrashIcon className="w-4 h-4" />
-                Delete Event
-              </button>
-              
-              {/* Calendar Link Button */}
-              <CalendarLinkButton
-                event={event}
-                variant="secondary"
-                size="md"
-                showCopyOption={true}
-                onSuccess={() => {
-                  console.log('Calendar link action successful');
-                }}
-                onError={(error) => {
-                  console.error('Calendar link error:', error);
-                }}
-              />
+          <div className="pt-8 space-y-6">
+            {/* Calendar Integration Section */}
+            <div className="pb-6 border-b border-gray-800/50">
+              <div className="text-center">
+                <p className="text-sm text-gray-400 mb-4">Add to your calendar</p>
+                <CalendarLinkButton
+                  event={event}
+                  variant="secondary"
+                  size="md"
+                  showCopyOption={true}
+                  onSuccess={() => {
+                    console.log('Calendar link action successful');
+                  }}
+                  onError={(error) => {
+                    console.error('Calendar link error:', error);
+                  }}
+                />
+              </div>
             </div>
             
-            <button
-              onClick={onEdit}
-              className="flex items-center gap-2 px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition-colors"
-            >
-              <ComponentIcon className="w-4 h-4" />
-              Edit Event
-            </button>
+            {/* Main Action Buttons */}
+            <div className="flex items-center justify-between pt-2">
+              <div>
+                <button
+                  onClick={handleDelete}
+                  className="inline-flex items-center px-3 py-1.5 text-sm text-gray-500 hover:text-red-400 hover:bg-red-900/10 rounded-md transition-all duration-200"
+                >
+                  <TrashIcon className="w-4 h-4 mr-1.5" />
+                  Delete
+                </button>
+              </div>
+              
+              <button
+                onClick={onEdit}
+                className="px-3 py-1.5 bg-white text-black hover:bg-gray-100 rounded-md transition-all duration-200 text-sm font-medium min-w-[80px]"
+              >
+                Edit Event
+              </button>
+            </div>
           </div>
         </div>
       </div>
