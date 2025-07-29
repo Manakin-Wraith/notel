@@ -76,20 +76,20 @@ describe('CalendarLinkButton', () => {
     expect(onError).toHaveBeenCalledWith('Failed to open Google Calendar');
   });
 
-  it('should render dropdown when showCopyOption is true', () => {
+  it('should render split-button when showCopyOption is true', () => {
     render(<CalendarLinkButton event={mockEvent} showCopyOption={true} />);
     
-    const button = screen.getByRole('button', { name: /add to google calendar/i });
-    expect(button).toBeInTheDocument();
+    const mainButton = screen.getByRole('button', { name: /add to google calendar/i });
+    const copyButton = screen.getByRole('button', { name: /copy calendar link/i });
     
-    // Click to open dropdown
-    fireEvent.click(button);
+    expect(mainButton).toBeInTheDocument();
+    expect(copyButton).toBeInTheDocument();
     
-    expect(screen.getByText('Open in Google Calendar')).toBeInTheDocument();
-    expect(screen.getByText('Copy calendar link')).toBeInTheDocument();
+    // Should be in a split-button container
+    expect(mainButton.parentElement).toHaveClass('inline-flex');
   });
 
-  it('should open Google Calendar from dropdown', () => {
+  it('should open Google Calendar from main button', () => {
     const onSuccess = vi.fn();
     const onError = vi.fn();
     (calendarLinks.openGoogleCalendar as any).mockImplementation(() => {
@@ -98,76 +98,47 @@ describe('CalendarLinkButton', () => {
     
     render(<CalendarLinkButton event={mockEvent} showCopyOption={true} onSuccess={onSuccess} onError={onError} />);
     
-    // Open dropdown
-    const button = screen.getByRole('button', { name: /add to google calendar/i });
-    fireEvent.click(button);
-    
-    // Click open calendar option
-    const openOption = screen.getByText('Open in Google Calendar');
-    fireEvent.click(openOption);
+    // Click main button directly
+    const mainButton = screen.getByRole('button', { name: /add to google calendar/i });
+    fireEvent.click(mainButton);
     
     expect(calendarLinks.openGoogleCalendar).toHaveBeenCalledWith(mockEvent);
     expect(onError).toHaveBeenCalled();
     expect(onSuccess).not.toHaveBeenCalled();
   });
 
-  it('should copy calendar link from dropdown', async () => {
+  it('should copy calendar link from copy button', async () => {
     (calendarLinks.copyCalendarLinkToClipboard as any).mockResolvedValue(true);
     const onSuccess = vi.fn();
-    
     render(<CalendarLinkButton event={mockEvent} showCopyOption={true} onSuccess={onSuccess} />);
     
-    // Open dropdown
-    const button = screen.getByRole('button', { name: /add to google calendar/i });
-    fireEvent.click(button);
+    // Click copy button directly
+    const copyButton = screen.getByRole('button', { name: /copy calendar link/i });
+    fireEvent.click(copyButton);
     
-    // Click copy option
-    const copyOption = screen.getByText('Copy calendar link');
-    fireEvent.click(copyOption);
-    
-    expect(calendarLinks.copyCalendarLinkToClipboard).toHaveBeenCalledWith(mockEvent);
-    
-    // Wait for success state
     await waitFor(() => {
-      expect(screen.getByText('Link copied!')).toBeInTheDocument();
+      expect(calendarLinks.copyCalendarLinkToClipboard).toHaveBeenCalledWith(mockEvent);
+      expect(onSuccess).toHaveBeenCalled();
     });
     
-    expect(onSuccess).toHaveBeenCalled();
+    // Should show success state with green checkmark
+    await waitFor(() => {
+      expect(copyButton).toHaveAttribute('title', 'Link copied!');
+    });
   });
 
   it('should handle copy failure', async () => {
     (calendarLinks.copyCalendarLinkToClipboard as any).mockResolvedValue(false);
     const onError = vi.fn();
-    
     render(<CalendarLinkButton event={mockEvent} showCopyOption={true} onError={onError} />);
     
-    // Open dropdown
-    const button = screen.getByRole('button', { name: /add to google calendar/i });
-    fireEvent.click(button);
-    
-    // Click copy option
-    const copyOption = screen.getByText('Copy calendar link');
-    fireEvent.click(copyOption);
+    // Click copy button directly
+    const copyButton = screen.getByRole('button', { name: /copy calendar link/i });
+    fireEvent.click(copyButton);
     
     await waitFor(() => {
       expect(onError).toHaveBeenCalledWith('Failed to copy calendar link');
     });
-  });
-
-  it('should close dropdown when clicking backdrop', () => {
-    render(<CalendarLinkButton event={mockEvent} showCopyOption={true} />);
-    
-    // Open dropdown
-    const button = screen.getByRole('button', { name: /add to google calendar/i });
-    fireEvent.click(button);
-    
-    expect(screen.getByText('Open in Google Calendar')).toBeInTheDocument();
-    
-    // Click backdrop
-    const backdrop = document.querySelector('.fixed.inset-0');
-    fireEvent.click(backdrop!);
-    
-    expect(screen.queryByText('Open in Google Calendar')).not.toBeInTheDocument();
   });
 
   it('should apply different variants correctly', () => {
@@ -177,7 +148,7 @@ describe('CalendarLinkButton', () => {
     
     rerender(<CalendarLinkButton event={mockEvent} variant="secondary" />);
     button = screen.getByRole('button');
-    expect(button).toHaveClass('bg-gray-800/50');
+    expect(button).toHaveClass('bg-gray-800/40');
     
     rerender(<CalendarLinkButton event={mockEvent} variant="minimal" />);
     button = screen.getByRole('button');
@@ -187,15 +158,15 @@ describe('CalendarLinkButton', () => {
   it('should apply different sizes correctly', () => {
     const { rerender } = render(<CalendarLinkButton event={mockEvent} size="sm" />);
     let button = screen.getByRole('button');
-    expect(button).toHaveClass('px-2', 'py-1', 'text-xs');
+    expect(button).toHaveClass('px-3', 'py-1.5', 'text-xs');
     
     rerender(<CalendarLinkButton event={mockEvent} size="md" />);
     button = screen.getByRole('button');
-    expect(button).toHaveClass('px-3', 'py-2', 'text-sm');
+    expect(button).toHaveClass('px-3', 'py-1.5', 'text-sm');
     
     rerender(<CalendarLinkButton event={mockEvent} size="lg" />);
     button = screen.getByRole('button');
-    expect(button).toHaveClass('px-4', 'py-2', 'text-base');
+    expect(button).toHaveClass('px-3', 'py-1.5', 'text-base');
   });
 
   it('should apply custom className', () => {
