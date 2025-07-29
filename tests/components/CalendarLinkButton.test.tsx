@@ -1,12 +1,13 @@
 /**
- * Tests for CalendarLinkButton Component
+ * CalendarLinkButton Component Tests
+ * Tests for enhanced Google Calendar link generation UI component with Google branding
  */
 
-import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { vi, describe, it, expect, beforeEach } from 'vitest';
 import CalendarLinkButton from '../../components/CalendarLinkButton';
-import type { Event } from '../../types';
 import * as calendarLinks from '../../lib/calendarLinks';
+import type { Event } from '../../types';
 
 // Mock the calendar links module
 vi.mock('../../lib/calendarLinks', () => ({
@@ -37,7 +38,7 @@ describe('CalendarLinkButton', () => {
   it('should render simple button when showCopyOption is false', () => {
     render(<CalendarLinkButton event={mockEvent} />);
     
-    const button = screen.getByRole('button', { name: /add to calendar/i });
+    const button = screen.getByRole('button', { name: /add to google calendar/i });
     expect(button).toBeInTheDocument();
     expect(button).toHaveAttribute('title', 'Add to Google Calendar');
   });
@@ -54,7 +55,7 @@ describe('CalendarLinkButton', () => {
     
     render(<CalendarLinkButton event={mockEvent} onSuccess={onSuccess} />);
     
-    const button = screen.getByRole('button', { name: /add to calendar/i });
+    const button = screen.getByRole('button', { name: /add to google calendar/i });
     fireEvent.click(button);
     
     expect(calendarLinks.openGoogleCalendar).toHaveBeenCalledWith(mockEvent);
@@ -69,7 +70,7 @@ describe('CalendarLinkButton', () => {
     
     render(<CalendarLinkButton event={mockEvent} onError={onError} />);
     
-    const button = screen.getByRole('button', { name: /add to calendar/i });
+    const button = screen.getByRole('button', { name: /add to google calendar/i });
     fireEvent.click(button);
     
     expect(onError).toHaveBeenCalledWith('Failed to open Google Calendar');
@@ -78,7 +79,7 @@ describe('CalendarLinkButton', () => {
   it('should render dropdown when showCopyOption is true', () => {
     render(<CalendarLinkButton event={mockEvent} showCopyOption={true} />);
     
-    const button = screen.getByRole('button', { name: /add to calendar/i });
+    const button = screen.getByRole('button', { name: /add to google calendar/i });
     expect(button).toBeInTheDocument();
     
     // Click to open dropdown
@@ -98,7 +99,7 @@ describe('CalendarLinkButton', () => {
     render(<CalendarLinkButton event={mockEvent} showCopyOption={true} onSuccess={onSuccess} onError={onError} />);
     
     // Open dropdown
-    const button = screen.getByRole('button', { name: /add to calendar/i });
+    const button = screen.getByRole('button', { name: /add to google calendar/i });
     fireEvent.click(button);
     
     // Click open calendar option
@@ -117,7 +118,7 @@ describe('CalendarLinkButton', () => {
     render(<CalendarLinkButton event={mockEvent} showCopyOption={true} onSuccess={onSuccess} />);
     
     // Open dropdown
-    const button = screen.getByRole('button', { name: /add to calendar/i });
+    const button = screen.getByRole('button', { name: /add to google calendar/i });
     fireEvent.click(button);
     
     // Click copy option
@@ -141,7 +142,7 @@ describe('CalendarLinkButton', () => {
     render(<CalendarLinkButton event={mockEvent} showCopyOption={true} onError={onError} />);
     
     // Open dropdown
-    const button = screen.getByRole('button', { name: /add to calendar/i });
+    const button = screen.getByRole('button', { name: /add to google calendar/i });
     fireEvent.click(button);
     
     // Click copy option
@@ -157,7 +158,7 @@ describe('CalendarLinkButton', () => {
     render(<CalendarLinkButton event={mockEvent} showCopyOption={true} />);
     
     // Open dropdown
-    const button = screen.getByRole('button', { name: /add to calendar/i });
+    const button = screen.getByRole('button', { name: /add to google calendar/i });
     fireEvent.click(button);
     
     expect(screen.getByText('Open in Google Calendar')).toBeInTheDocument();
@@ -172,15 +173,15 @@ describe('CalendarLinkButton', () => {
   it('should apply different variants correctly', () => {
     const { rerender } = render(<CalendarLinkButton event={mockEvent} variant="primary" />);
     let button = screen.getByRole('button');
-    expect(button).toHaveClass('bg-blue-600');
+    expect(button).toHaveClass('bg-[#4285f4]');
     
     rerender(<CalendarLinkButton event={mockEvent} variant="secondary" />);
     button = screen.getByRole('button');
-    expect(button).toHaveClass('bg-gray-100');
+    expect(button).toHaveClass('bg-gray-800/50');
     
     rerender(<CalendarLinkButton event={mockEvent} variant="minimal" />);
     button = screen.getByRole('button');
-    expect(button).toHaveClass('text-gray-600');
+    expect(button).toHaveClass('text-gray-400');
   });
 
   it('should apply different sizes correctly', () => {
@@ -212,7 +213,7 @@ describe('CalendarLinkButton', () => {
     
     render(<CalendarLinkButton event={partialEvent} />);
     
-    const button = screen.getByRole('button', { name: /add to calendar/i });
+    const button = screen.getByRole('button', { name: /add to google calendar/i });
     fireEvent.click(button);
     
     expect(calendarLinks.openGoogleCalendar).toHaveBeenCalledWith(partialEvent);

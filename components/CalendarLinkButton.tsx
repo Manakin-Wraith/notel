@@ -1,6 +1,7 @@
 /**
  * CalendarLinkButton Component
  * Phase 1: Google Calendar link generation UI component
+ * Enhanced with Google branding and Notion-inspired design
  */
 
 import React, { useState } from 'react';
@@ -10,7 +11,7 @@ import {
   copyCalendarLinkToClipboard, 
   canCreateCalendarLink 
 } from '../lib/calendarLinks';
-import CalendarDaysIcon from './icons/CalendarDaysIcon';
+import GoogleCalendarIcon from './icons/GoogleCalendarIcon';
 import CheckIcon from './icons/CheckIcon';
 
 interface CalendarLinkButtonProps {
@@ -74,13 +75,13 @@ const CalendarLinkButton: React.FC<CalendarLinkButtonProps> = ({
     }
   };
 
-  // Style variants
-  const baseStyles = 'inline-flex items-center justify-center font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed';
+  // Enhanced Notion-inspired styling with Google branding
+  const baseStyles = 'inline-flex items-center justify-center font-medium transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:ring-offset-gray-900 disabled:opacity-50 disabled:cursor-not-allowed group';
   
   const variantStyles = {
-    primary: 'bg-blue-600 hover:bg-blue-700 text-white',
-    secondary: 'bg-gray-100 hover:bg-gray-200 text-gray-900 dark:bg-gray-800 dark:hover:bg-gray-700 dark:text-gray-100',
-    minimal: 'text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-800'
+    primary: 'bg-[#4285f4] hover:bg-[#3367d6] text-white shadow-sm hover:shadow-md border border-transparent',
+    secondary: 'bg-gray-800/50 hover:bg-gray-700/60 text-gray-200 border border-gray-700/50 hover:border-gray-600/50 backdrop-blur-sm',
+    minimal: 'text-gray-400 hover:text-gray-200 hover:bg-gray-800/40 border border-transparent hover:border-gray-700/30'
   };
 
   const sizeStyles = {
@@ -105,8 +106,8 @@ const CalendarLinkButton: React.FC<CalendarLinkButtonProps> = ({
         className={buttonClasses}
         title="Add to Google Calendar"
       >
-        <CalendarDaysIcon className={`${iconSizes[size]} mr-2`} />
-        Add to Calendar
+        <GoogleCalendarIcon className={`mr-2 group-hover:scale-105 transition-transform duration-200`} size={size === 'sm' ? 14 : size === 'md' ? 16 : 18} />
+        <span className="font-medium">Add to Google Calendar</span>
       </button>
     );
   }
@@ -117,11 +118,11 @@ const CalendarLinkButton: React.FC<CalendarLinkButtonProps> = ({
       <button
         onClick={() => setShowDropdown(!showDropdown)}
         className={buttonClasses}
-        title="Calendar options"
+        title="Google Calendar options"
       >
-        <CalendarDaysIcon className={`${iconSizes[size]} mr-2`} />
-        Add to Calendar
-        <svg className={`${iconSizes[size]} ml-1`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <GoogleCalendarIcon className={`mr-2 group-hover:scale-105 transition-transform duration-200`} size={size === 'sm' ? 14 : size === 'md' ? 16 : 18} />
+        <span className="font-medium">Add to Google Calendar</span>
+        <svg className={`${iconSizes[size]} ml-2 transition-transform duration-200 ${showDropdown ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
         </svg>
       </button>
@@ -134,33 +135,33 @@ const CalendarLinkButton: React.FC<CalendarLinkButtonProps> = ({
             onClick={() => setShowDropdown(false)}
           />
           
-          {/* Dropdown menu */}
-          <div className="absolute right-0 mt-2 w-48 bg-white dark:bg-gray-800 rounded-md shadow-lg ring-1 ring-black ring-opacity-5 z-20">
-            <div className="py-1">
+          {/* Enhanced dropdown menu */}
+          <div className="absolute right-0 mt-2 w-56 bg-gray-900/95 backdrop-blur-sm rounded-lg shadow-xl ring-1 ring-gray-700/50 z-20 border border-gray-700/30">
+            <div className="py-2">
               <button
                 onClick={handleOpenCalendar}
-                className="flex items-center w-full px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
+                className="flex items-center w-full px-4 py-3 text-sm text-gray-200 hover:bg-gray-800/60 hover:text-white transition-all duration-150 group"
               >
-                <CalendarDaysIcon className="h-4 w-4 mr-3" />
-                Open in Google Calendar
+                <GoogleCalendarIcon className="mr-3 group-hover:scale-105 transition-transform duration-200" size={16} />
+                <span className="font-medium">Open in Google Calendar</span>
               </button>
               
               <button
                 onClick={handleCopyLink}
-                className="flex items-center w-full px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
+                className="flex items-center w-full px-4 py-3 text-sm text-gray-200 hover:bg-gray-800/60 hover:text-white transition-all duration-150 group disabled:opacity-60 disabled:cursor-not-allowed"
                 disabled={copySuccess}
               >
                 {copySuccess ? (
                   <>
-                    <CheckIcon className="h-4 w-4 mr-3 text-green-500" />
-                    <span className="text-green-500">Link copied!</span>
+                    <CheckIcon className="h-4 w-4 mr-3 text-green-400" />
+                    <span className="text-green-400 font-medium">Link copied!</span>
                   </>
                 ) : (
                   <>
-                    <svg className="h-4 w-4 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg className="h-4 w-4 mr-3 group-hover:scale-105 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
                     </svg>
-                    Copy calendar link
+                    <span className="font-medium">Copy calendar link</span>
                   </>
                 )}
               </button>
