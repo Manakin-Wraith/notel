@@ -10,6 +10,7 @@ import PageIcon from './icons/PageIcon';
 import IconPicker from './IconPicker';
 import ShareButton from './ShareButton';
 import ReminderSettings from './ReminderSettings';
+import CalendarLinkButton from './CalendarLinkButton';
 
 interface EventModalProps {
   isOpen: boolean;
@@ -445,6 +446,36 @@ const EventModal: React.FC<EventModalProps> = ({
             </div>
             
             <div className="flex items-center gap-3">
+              {/* Calendar Link Button - Show for existing events or when form is valid */}
+              {(event || (formData.title && formData.startDate)) && (
+                <CalendarLinkButton
+                  event={event || {
+                    title: formData.title,
+                    description: formData.description,
+                    startDate: formData.allDay 
+                      ? formData.startDate 
+                      : `${formData.startDate}T${formData.startTime || '00:00'}:00.000Z`,
+                    endDate: formData.endDate 
+                      ? (formData.allDay 
+                          ? formData.endDate 
+                          : `${formData.endDate}T${formData.endTime || '23:59'}:00.000Z`)
+                      : undefined,
+                    allDay: formData.allDay
+                  }}
+                  variant="secondary"
+                  size="md"
+                  showCopyOption={true}
+                  onSuccess={() => {
+                    // Could show a toast notification here
+                    console.log('Calendar link action successful');
+                  }}
+                  onError={(error) => {
+                    console.error('Calendar link error:', error);
+                    // Could show an error toast here
+                  }}
+                />
+              )}
+              
               <button
                 type="button"
                 onClick={onClose}

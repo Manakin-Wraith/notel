@@ -6,6 +6,7 @@ import CalendarIcon from './icons/CalendarIcon';
 import ComponentIcon from './icons/ComponentIcon';
 import TrashIcon from './icons/TrashIcon';
 import ShareButton from './ShareButton';
+import CalendarLinkButton from './CalendarLinkButton';
 
 interface EventDetailsModalProps {
   isOpen: boolean;
@@ -184,13 +185,29 @@ const EventDetailsModal: React.FC<EventDetailsModalProps> = ({
 
           {/* Actions */}
           <div className="flex items-center justify-between pt-4 border-t border-gray-700">
-            <button
-              onClick={handleDelete}
-              className="flex items-center gap-2 px-4 py-2 text-red-400 hover:text-red-300 hover:bg-red-900/20 rounded-lg transition-colors"
-            >
-              <TrashIcon className="w-4 h-4" />
-              Delete Event
-            </button>
+            <div className="flex items-center gap-3">
+              <button
+                onClick={handleDelete}
+                className="flex items-center gap-2 px-4 py-2 text-red-400 hover:text-red-300 hover:bg-red-900/20 rounded-lg transition-colors"
+              >
+                <TrashIcon className="w-4 h-4" />
+                Delete Event
+              </button>
+              
+              {/* Calendar Link Button */}
+              <CalendarLinkButton
+                event={event}
+                variant="secondary"
+                size="md"
+                showCopyOption={true}
+                onSuccess={() => {
+                  console.log('Calendar link action successful');
+                }}
+                onError={(error) => {
+                  console.error('Calendar link error:', error);
+                }}
+              />
+            </div>
             
             <button
               onClick={onEdit}
