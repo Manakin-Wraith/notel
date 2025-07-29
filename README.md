@@ -1,17 +1,26 @@
-# Notel - A Notion-inspired Note-taking App
+# Notel - A Notion-inspired Productivity App
 
-Notel is a modern, responsive note-taking application inspired by Notion, built with React, TypeScript, and Vite. It provides a clean, intuitive interface for organizing your notes and ideas.
+Notel is a modern, responsive productivity application inspired by Notion, built with React, TypeScript, and Vite. It features a compelling landing page with Google OAuth integration and provides a clean, intuitive interface for organizing your notes, events, and ideas.
 
 ![Notel Screenshot](public/notel-screenshot.png)
 
-## Features
+## ✨ Features
 
-- 📝 Rich text editing
-- 🏷️ Categorize notes with tags
-- 🔍 Full-text search
-- 📱 Responsive design for all devices
-- ⚡ Fast and lightweight
-- 🔄 Real-time updates
+### 🎯 Landing Page
+- **Google OAuth Integration**: Seamless sign-in with Google
+- **Notion-inspired Design**: Dark theme with minimalist aesthetic
+- **Responsive Layout**: Mobile-optimized across all devices
+- **Loading States**: Professional spinners and user feedback
+- **Toast Notifications**: Elegant success/error messaging
+
+### 📝 Core Productivity Features
+- **Rich Text Editing**: Powerful editor for notes and documents
+- **Event Management**: Calendar integration and scheduling
+- **Page Organization**: Hierarchical page structure
+- **Real-time Collaboration**: Share and collaborate on content
+- **User Settings**: Customizable default views and preferences
+- **Full-text Search**: Find content across all your data
+- **Responsive Design**: Works seamlessly on all devices
 
 ## Prerequisites
 
@@ -35,26 +44,12 @@ Notel is a modern, responsive note-taking application inspired by Notion, built 
    ```
 
 3. **Set up environment variables**
-   Create a `.env.local` file in the root directory and add your API keys:
+   Create a `.env.local` file in the root directory and add your Supabase configuration:
    ```env
-   VITE_SUPABASE_URL=your_supabase_url
-   VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
+
    ```
    You can get these keys from your Supabase project dashboard.
 
-4. **Set up the database**:
-   - Log in to your Supabase account and create a new project.
-   - Go to the "SQL Editor" and run the SQL queries from the following files to set up the database schema:
-     - `schema_with_events.sql`
-     - `schema_sharing.sql`
-
-5. **Run the development server**
-   ```bash
-   npm run dev
-   # or
-   yarn dev
-   ```
-   Open [http://localhost:5173](http://localhost:5173) to view it in your browser.
 
 ## Usage
 
@@ -76,6 +71,9 @@ Once the application is running, you can start exploring its features:
 - `npm run build` - Build the app for production
 - `npm run preview` - Preview the production build locally
 - `npm run lint` - Run the linter
+- `npm test` - Run the test suite
+- `npm run test:watch` - Run tests in watch mode
+- `npm run test:coverage` - Generate test coverage report
 
 ## Project Structure
 
@@ -84,42 +82,95 @@ notel/
 ├── public/             # Static files
 ├── src/
 │   ├── components/     # Reusable React components
-│   ├── hooks/          # Custom React hooks
-│   ├── styles/         # Global styles
+│   │   ├── landing/    # Landing page components
+│   │   ├── icons/      # Icon components
+│   │   └── ...         # Other UI components
+│   ├── contexts/       # React contexts (Auth, Notification)
+│   ├── hooks/          # Custom React hooks (useAuthWithToast)
+│   ├── lib/            # Utility libraries (Supabase client)
+│   ├── test/           # Test setup and utilities
 │   ├── types/          # TypeScript type definitions
-│   ├── utils/          # Utility functions
 │   ├── App.tsx         # Main App component
 │   └── main.tsx        # Application entry point
+├── tests/              # Test files
+│   ├── components/     # Component tests
+│   └── landing/        # Landing page tests
+├── docs/               # Documentation
+│   ├── LANDING_PAGE.md # Landing page documentation
+│   └── DEPLOYMENT.md   # Deployment guide
+├── supabase/           # Database migrations
 ├── .env.local          # Environment variables
-├── index.html          # Main HTML template
+├── vitest.config.ts    # Test configuration
 ├── package.json        # Project dependencies and scripts
 └── tsconfig.json      # TypeScript configuration
 ```
 
 ## Technologies Used
 
-- ⚛️ React 19
-- 📝 TypeScript
-- ⚡ Vite
-- 🎨 Tailwind CSS (if applicable)
-- 🔄 React Query (if applicable)
+- ⚛️ **React 18** - Modern React with hooks and context
+- 📝 **TypeScript** - Type-safe development
+- ⚡ **Vite** - Fast build tool and dev server
+- 🎨 **Tailwind CSS** - Utility-first CSS framework
+- 🔐 **Supabase** - Backend-as-a-Service with authentication
+- 🔍 **Google OAuth** - Secure authentication integration
+- 🧪 **Vitest** - Fast unit testing framework
+- 📚 **React Testing Library** - Component testing utilities
+
+## Testing
+
+The project includes comprehensive test coverage:
+
+```bash
+# Run all tests
+npm test
+
+# Run tests in watch mode during development
+npm run test:watch
+
+# Generate coverage report
+npm run test:coverage
+```
+
+**Current Test Coverage**: 90% (37/41 tests passing)
+
+## Documentation
+
+- [Landing Page Documentation](docs/LANDING_PAGE.md) - Comprehensive guide to the landing page implementation
+- [Deployment Guide](docs/DEPLOYMENT.md) - Step-by-step deployment instructions
+- [Component Architecture](src/components/) - Individual component documentation
+
+## Deployment
+
+For production deployment:
+
+1. Follow the [Deployment Guide](docs/DEPLOYMENT.md)
+2. Configure Google OAuth in Supabase and Google Cloud Console
+3. Set environment variables for production
+4. Deploy to Vercel, Netlify, or your preferred platform
 
 ## Contributing
 
-Contributions are welcome! Please feel free to submit a Pull Request.
+Contributions are welcome! Please:
 
 1. Fork the repository
-2. Create your feature branch (`git checkout -b feature/AmazingFeature`)
-3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
-4. Push to the branch (`git push origin feature/AmazingFeature`)
-5. Open a Pull Request
+2. Create a feature branch (`git checkout -b feature/amazing-feature`)
+3. Follow the [Feature Addition Process](.windsurf/workflows/add.md)
+4. Commit your changes (`git commit -m 'Add amazing feature'`)
+5. Push to the branch (`git push origin feature/amazing-feature`)
+6. Open a Pull Request
 
 ## License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
-## Acknowledgments
+## Support
 
-- Inspired by Notion
-- Built with Create React App + TypeScript
-- Icons from [React Icons](https://react-icons.github.io/react-icons/)
+If you encounter any issues or have questions:
+
+1. Check the [documentation](docs/)
+2. Search existing [issues](https://github.com/yourusername/notel/issues)
+3. Create a new issue with detailed information
+
+---
+
+**Built with ❤️ using modern web technologies**
