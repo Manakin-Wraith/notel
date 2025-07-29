@@ -46,24 +46,24 @@ Notel is a modern, responsive productivity application inspired by Notion, built
 3. **Set up environment variables**
    Create a `.env.local` file in the root directory and add your Supabase configuration:
    ```env
-   VITE_SUPABASE_URL=your_supabase_project_url
-   VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
-   ```
 
-4. **Configure Google OAuth (for landing page authentication)**
-   - Set up a Supabase project at [supabase.com](https://supabase.com)
-   - Enable Google OAuth provider in Supabase Auth settings
-   - Create Google OAuth credentials in [Google Cloud Console](https://console.cloud.google.com)
-   - Add redirect URIs: `http://localhost:5173/` (development) and your production URL
-   - See [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) for detailed setup instructions
-
-5. **Start the development server**
-   ```bash
-   npm run dev
-   # or
-   yarn dev
    ```
-   Open [http://localhost:5173](http://localhost:5173) to view it in your browser.
+   You can get these keys from your Supabase project dashboard.
+
+
+## Usage
+
+Once the application is running, you can start exploring its features:
+
+- **Creating a New Page**: Click the "+" button in the sidebar to create a new page.
+- **Using Block Commands**: Type `/` on a new line to open the block command menu and add different types of content.
+- **Switching Views**: Use the icons in the sidebar to switch between the Agenda, Board, and Calendar views.
+- **Managing Events**: Create new events, view event details, and manage your schedule from the Calendar or Agenda view.
+- **Command Palette**: Press `Ctrl/Cmd + K` to open the command palette for quick navigation and actions.
+
+### Google Sign-In
+
+- **Sign in with Google**: Click the "Sign in with Google" button on the login page to authenticate with your Google account.
 
 ## Available Scripts
 
