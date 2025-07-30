@@ -242,11 +242,11 @@ const Sidebar: React.FC<SidebarProps> = ({
   return (
     <aside 
       id={id}
-      className={`fixed left-0 top-0 w-72 h-screen p-4 flex flex-col bg-black/30 backdrop-blur-xl border-r border-white/10 shrink-0 z-40 transition-transform duration-300 ease-in-out ${isMobile ? 'min-w-72' : ''} ${isMobile && !isOpen ? '-translate-x-full' : 'translate-x-0'}`}
+      className={`fixed left-0 top-0 w-80 h-screen p-4 flex flex-col bg-black/30 backdrop-blur-xl border-r border-white/10 shrink-0 z-40 transition-transform duration-300 ease-in-out ${isMobile ? 'min-w-80' : ''} ${isMobile && !isOpen ? '-translate-x-full' : 'translate-x-0'}`}
     >
       <div className="flex items-center justify-between mb-6 px-1">
         <Logo size="medium" showText={true} />
-        <div className="flex items-center gap-1">
+        <div className="flex items-center gap-2">
           <button
             onClick={() => handleViewChange('agenda')}
             className={`p-1.5 rounded-md transition-colors ${

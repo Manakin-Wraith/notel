@@ -980,7 +980,7 @@ function AppContent() {
       />
 
       {/* Main content - adjusted for fixed sidebar */}
-      <div className={`flex-1 ${isMobile ? 'w-full' : 'ml-72'}`}>
+      <div className={`flex-1 ${isMobile ? 'w-full' : 'ml-80'}`}>
         {renderView()}
       </div>
 
