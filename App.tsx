@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import Sidebar from './components/Sidebar';
 import Editor from './components/Editor';
 import Auth from './components/Auth';
@@ -188,6 +188,10 @@ function AppContent() {
     const [syncing, setSyncing] = useState(false);
     const [welcomePagesCreated, setWelcomePagesCreated] = useState(false);
     
+    // Add caching to prevent unnecessary data reloads
+    const dataLoadedForUser = useRef<string | null>(null);
+    const isInitialLoad = useRef(true);
+    
     // Event Modal State
     const [eventModalOpen, setEventModalOpen] = useState(false);
     const [eventDetailsModalOpen, setEventDetailsModalOpen] = useState(false);
@@ -265,20 +269,51 @@ function AppContent() {
     }
   }, [user]);
 
-  // Load data from Supabase when user is authenticated
+  // Load data from Supabase when user is authenticated (with intelligent caching)
   useEffect(() => {
-    const loadData = async () => {
+    const loadDataAndSettings = async () => {
       if (!user) {
         setLoading(false);
+        dataLoadedForUser.current = null;
+        return;
+      }
+
+      // Skip loading if data is already loaded for this user (prevents unnecessary reloads)
+      if (dataLoadedForUser.current === user.id && !isInitialLoad.current) {
+        console.log('🚀 Data already loaded for user, skipping reload');
         return;
       }
 
       try {
         setLoading(true);
-        const supabasePages = await databaseService.getPages();
+        console.log('🔄 Loading data and settings for user:', user.id);
+        
+        // Load data and settings in parallel for better performance
+        const [supabasePages, userSettings] = await Promise.all([
+          databaseService.getPages(),
+          (async () => {
+            try {
+              const { data: settings } = await supabase
+                .from('user_settings')
+                .select('default_view')
+                .eq('user_id', user.id)
+                .single();
+              return settings;
+            } catch (error) {
+              console.log('🔧 No user settings found, using defaults');
+              return null;
+            }
+          })()
+        ]);
         
         // Test database schema first
         await databaseService.testPositionColumn();
+        
+        // Apply user settings immediately
+        if (userSettings?.default_view) {
+          console.log('🔧 Setting view mode to:', userSettings.default_view);
+          setViewMode(userSettings.default_view as 'editor' | 'agenda' | 'board' | 'calendar');
+        }
         
         // Always prioritize database data over localStorage
         console.log(`🔍 Database pages found: ${supabasePages.length}`);
@@ -363,7 +398,6 @@ function AppContent() {
           }
         } else {
           // Database has data - use it and clear localStorage to prevent conflicts
-          console.log(`🔍 Database pages found: ${supabasePages.length}`);
           console.log('Loading pages from database with positions preserved');
           setPages(supabasePages);
           // Load events from database
@@ -380,25 +414,24 @@ function AppContent() {
           // Clear localStorage to prevent it from overriding database order
           localStorage.removeItem('glasstion-pages');
         }
+        
+        // Mark data as loaded for this user to prevent unnecessary reloads
+        dataLoadedForUser.current = user.id;
+        console.log('✅ Data and settings loaded successfully for user:', user.id);
+        
       } catch (error) {
         console.error('Failed to load data:', error);
         // Fallback to localStorage
         setPages(getInitialPages());
       } finally {
         setLoading(false);
+        setSyncing(false);
+        isInitialLoad.current = false;
       }
     };
 
-    loadData();
-    
-    // Load user settings after data is loaded
-    if (user) {
-      console.log('🔧 useEffect: Calling loadUserSettings for user:', user.id);
-      loadUserSettings();
-    } else {
-      console.log('🔧 useEffect: No user, skipping loadUserSettings');
-    }
-  }, [user, loadUserSettings]);
+    loadDataAndSettings();
+  }, [user?.id]); // Only depend on user ID to prevent unnecessary reruns
 
   // Initialize notification system when user is authenticated
   useEffect(() => {
