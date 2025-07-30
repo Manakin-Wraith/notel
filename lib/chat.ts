@@ -36,28 +36,22 @@ export class ChatService {
       const user = (await supabase.auth.getUser()).data.user;
       if (!user) throw new Error('User not authenticated');
 
-      // First get conversation IDs where user is a participant
-      const { data: participantData, error: participantError } = await supabase
-        .from('conversation_participants')
-        .select('conversation_id')
-        .eq('user_id', user.id)
-        .is('left_at', null);
-
-      if (participantError) throw participantError;
-      if (!participantData || participantData.length === 0) {
-        return { data: [], success: true };
-      }
-
-      const conversationIds = participantData.map(p => p.conversation_id);
-
-      // Then get conversations with basic info
+      // Directly query conversations the user is part of.
+      // The RLS policy on 'conversations' table will ensure only accessible conversations are returned.
       const { data, error } = await supabase
         .from('conversations')
         .select('*')
-        .in('id', conversationIds)
         .order('updated_at', { ascending: false });
 
-      if (error) throw error;
+      if (error) {
+        // Check for a specific error hint that suggests an RLS issue.
+        if (error.message.includes('infinite recursion')) {
+          console.error('Potential infinite recursion detected in RLS policy for conversations.');
+          // Provide a more user-friendly error or attempt a fallback.
+          throw new Error('Could not fetch conversations due to a database policy issue.');
+        }
+        throw error;
+      }
 
       return { data: data || [], success: true };
     } catch (error) {
