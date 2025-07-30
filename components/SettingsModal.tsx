@@ -7,10 +7,10 @@ import CheckIcon from './icons/CheckIcon.tsx';
 interface SettingsModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSave: (defaultView: 'editor' | 'agenda' | 'board' | 'calendar') => Promise<void>;
+  onSave: (defaultView: 'editor' | 'agenda' | 'board' | 'calendar' | 'chat') => Promise<void>;
 }
 
-type ViewMode = 'editor' | 'agenda' | 'board' | 'calendar';
+type ViewMode = 'editor' | 'agenda' | 'board' | 'calendar' | 'chat';
 
 interface UserSettings {
   default_view: ViewMode;
@@ -72,7 +72,8 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, onSave }
     { value: 'editor', label: 'Editor', description: 'Start with page editing view' },
     { value: 'agenda', label: 'Agenda', description: 'Start with agenda/task view' },
     { value: 'board', label: 'Board', description: 'Start with kanban board view' },
-    { value: 'calendar', label: 'Calendar', description: 'Start with calendar view' }
+    { value: 'calendar', label: 'Calendar', description: 'Start with calendar view' },
+    { value: 'chat', label: 'Chat', description: 'Start with social chat view' }
   ];
 
   if (!isOpen) return null;

@@ -23,6 +23,7 @@ import Board from './components/Board';
 import Router from './components/Router';
 import SettingsModal from './components/SettingsModal';
 import ProfileModal from './components/ProfileModal';
+import ChatPrototype from './components/chat/ChatPrototype';
 
 const createBlockId = () => `${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
 
@@ -181,7 +182,7 @@ function AppContent() {
   ]);
     const [activePageId, setActivePageId] = useState<string | null>(null);
     const [isPaletteOpen, setIsPaletteOpen] = useState(false);
-    const [viewMode, setViewMode] = useState<'editor' | 'agenda' | 'board' | 'calendar'>('agenda'); // Default to agenda as requested
+    const [viewMode, setViewMode] = useState<'editor' | 'agenda' | 'board' | 'calendar' | 'chat'>('agenda'); // Default to agenda as requested
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
     const [isMobile, setIsMobile] = useState(false);
     const [loading, setLoading] = useState(false);
@@ -200,42 +201,10 @@ function AppContent() {
     const [settingsModalOpen, setSettingsModalOpen] = useState(false);
     const [profileModalOpen, setProfileModalOpen] = useState(false);
 
-  // Load user settings from database
-  const loadUserSettings = useCallback(async () => {
-    if (!user) {
-      console.log('🔧 loadUserSettings: No user, skipping');
-      return;
-    }
-    
-    console.log('🔧 loadUserSettings: Loading settings for user:', user.id);
-    
-    try {
-      const { data: settings, error } = await supabase
-        .from('user_settings')
-        .select('default_view')
-        .eq('user_id', user.id)
-        .single();
-      
-      console.log('🔧 loadUserSettings: Database response:', { settings, error });
-      
-      if (error && error.code !== 'PGRST116') { // PGRST116 = no rows returned
-        console.error('🔧 loadUserSettings: Error loading user settings:', error);
-        return;
-      }
-      
-      if (settings?.default_view) {
-        console.log('🔧 loadUserSettings: Setting view mode to:', settings.default_view);
-        setViewMode(settings.default_view as 'editor' | 'agenda' | 'board' | 'calendar');
-      } else {
-        console.log('🔧 loadUserSettings: No settings found, keeping default');
-      }
-    } catch (error) {
-      console.error('🔧 loadUserSettings: Catch error:', error);
-    }
-  }, [user]);
+
 
   // Save user settings to database
-  const saveUserSettings = useCallback(async (defaultView: 'editor' | 'agenda' | 'board' | 'calendar') => {
+  const saveUserSettings = useCallback(async (defaultView: 'editor' | 'agenda' | 'board' | 'calendar' | 'chat') => {
     if (!user) {
       console.log('🔧 saveUserSettings: No user, skipping');
       return;
@@ -312,7 +281,7 @@ function AppContent() {
         // Apply user settings immediately
         if (userSettings?.default_view) {
           console.log('🔧 Setting view mode to:', userSettings.default_view);
-          setViewMode(userSettings.default_view as 'editor' | 'agenda' | 'board' | 'calendar');
+          setViewMode(userSettings.default_view as 'editor' | 'agenda' | 'board' | 'calendar' | 'chat');
         }
         
         // Always prioritize database data over localStorage
@@ -925,6 +894,8 @@ function AppContent() {
 
           </>
         );
+      case 'chat':
+        return <ChatPrototype />;
       default:
         return (
           <Editor

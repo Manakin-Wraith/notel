@@ -10,9 +10,10 @@ import Logo from './Logo';
 import ChevronRightIcon from './icons/ChevronRightIcon';
 import PageIcon from './icons/PageIcon';
 import ProfileCard from './ProfileCard';
+import MessageCircleIcon from './icons/MessageCircleIcon';
 
 type DropIndicatorPosition = 'top' | 'bottom' | 'middle';
-type ViewMode = 'editor' | 'agenda' | 'board' | 'calendar';
+type ViewMode = 'editor' | 'agenda' | 'board' | 'calendar' | 'chat';
 
 interface PageTreeProps {
   pages: Page[];
@@ -278,6 +279,17 @@ const Sidebar: React.FC<SidebarProps> = ({
             aria-label={viewMode === 'calendar' ? 'Back to Editor' : 'Open Calendar View'}
           >
             <CalendarDaysIcon className="w-5 h-5" />
+          </button>
+           <button
+            onClick={() => handleViewChange('chat')}
+            className={`p-1.5 rounded-md transition-colors ${
+              viewMode === 'chat'
+                ? 'bg-white/10 text-white'
+                : 'text-gray-400 hover:text-white hover:bg-white/10'
+            }`}
+            aria-label={viewMode === 'chat' ? 'Back to Editor' : 'Open Chat'}
+          >
+            <MessageCircleIcon className="w-5 h-5" />
           </button>
           <button
             onClick={onAddPage}
