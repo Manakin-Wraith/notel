@@ -194,7 +194,7 @@ const EventModal: React.FC<EventModalProps> = ({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6">
       {/* Backdrop */}
       <div 
         className="absolute inset-0 bg-black/50 backdrop-blur-sm"
@@ -202,7 +202,7 @@ const EventModal: React.FC<EventModalProps> = ({
       />
       
       {/* Modal */}
-      <div className="relative w-full max-w-3xl mx-4 bg-gray-900 rounded-xl shadow-2xl border border-gray-700">
+      <div className="relative w-full max-w-3xl bg-gray-900 rounded-xl shadow-2xl border border-gray-700 max-h-[90vh] overflow-y-auto">
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b border-gray-700">
           <div className="flex items-center gap-3">
@@ -433,18 +433,21 @@ const EventModal: React.FC<EventModalProps> = ({
 
           {/* Actions */}
           <div className="pt-8 space-y-6">
-            {/* Calendar Integration Section */}
-            {(event || (formData.title && formData.startDate)) && (
-              <div className="pb-6 border-b border-gray-800/50">
+            {/* Calendar Integration */}
+            {formData.title && formData.startDate && (
+              <div className="bg-gray-800/30 rounded-lg p-6 border border-gray-700/50">
                 <div className="text-center">
-                  <p className="text-sm text-gray-400 mb-4">Add to your calendar</p>
+                  <h4 className="text-lg font-medium text-white mb-2">Add to your calendar</h4>
+                  <p className="text-sm text-gray-400 mb-6">Preview and add this event to your calendar</p>
                   <CalendarLinkButton
-                    event={event || {
+                    event={{
+                      id: event?.id || 'temp-id',
                       title: formData.title,
                       description: formData.description,
+                      icon: formData.icon,
                       startDate: formData.allDay 
-                        ? formData.startDate 
-                        : `${formData.startDate}T${formData.startTime || '00:00'}:00.000Z`,
+                        ? new Date(formData.startDate).toISOString()
+                        : new Date(`${formData.startDate}T${formData.startTime}`).toISOString(),
                       endDate: formData.endDate 
                         ? (formData.allDay 
                             ? formData.endDate 
@@ -453,7 +456,7 @@ const EventModal: React.FC<EventModalProps> = ({
                       allDay: formData.allDay
                     }}
                     variant="secondary"
-                    size="md"
+                    size="lg"
                     showCopyOption={true}
                     onSuccess={() => {
                       console.log('Calendar link action successful');
@@ -467,34 +470,33 @@ const EventModal: React.FC<EventModalProps> = ({
             )}
             
             {/* Main Action Buttons */}
-            <div className="flex items-center justify-between pt-2">
-              <div>
-                {event && onDelete && (
-                  <button
-                    type="button"
-                    onClick={handleDelete}
-                    className="inline-flex items-center px-3 py-2 text-sm text-gray-500 hover:text-red-400 hover:bg-red-900/10 rounded-md transition-all duration-200"
-                  >
-                    <svg className="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                    </svg>
-                    Delete
-                  </button>
-                )}
-              </div>
+            <div className="flex items-center justify-between pt-6 pb-2">
+              {event && onDelete && (
+                <button
+                  type="button"
+                  onClick={handleDelete}
+                  className="inline-flex items-center px-4 py-2.5 text-sm text-gray-500 hover:text-red-400 hover:bg-red-900/10 rounded-lg transition-all duration-200 border border-transparent hover:border-red-900/20"
+                >
+                  <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                  </svg>
+                  Delete
+                </button>
+              )}
+              {!event && <div></div>} {/* Spacer for alignment when no delete button */}
               
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-3">
                 <button
                   type="button"
                   onClick={onClose}
-                  className="px-3 py-1.5 text-sm text-gray-400 hover:text-gray-300 hover:bg-gray-800/50 rounded-md transition-all duration-200"
+                  className="px-4 py-2.5 text-sm text-gray-400 hover:text-gray-300 hover:bg-gray-800/50 rounded-lg transition-all duration-200 border border-gray-700/50"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={isSubmitting}
-                  className="px-3 py-1.5 bg-white text-black hover:bg-gray-100 disabled:bg-gray-300 disabled:cursor-not-allowed rounded-md transition-all duration-200 text-sm font-medium min-w-[100px]"
+                  className="px-6 py-2.5 bg-white text-black hover:bg-gray-100 disabled:bg-gray-300 disabled:cursor-not-allowed rounded-lg transition-all duration-200 text-sm font-medium min-w-[100px] shadow-sm"
                 >
                   {isSubmitting ? 'Saving...' : (event ? 'Save' : 'Create')}
                 </button>

@@ -70,7 +70,7 @@ const EventDetailsModal: React.FC<EventDetailsModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6">
       {/* Backdrop */}
       <div 
         className="absolute inset-0 bg-black/50 backdrop-blur-sm"
@@ -78,7 +78,7 @@ const EventDetailsModal: React.FC<EventDetailsModalProps> = ({
       />
       
       {/* Modal */}
-      <div className="relative w-full max-w-2xl mx-4 bg-gray-900 rounded-xl shadow-2xl border border-gray-700">
+      <div className="relative w-full max-w-2xl bg-gray-900 rounded-xl shadow-2xl border border-gray-700 max-h-[90vh] overflow-y-auto">
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b border-gray-700">
           <div className="flex items-center gap-3">
@@ -184,15 +184,16 @@ const EventDetailsModal: React.FC<EventDetailsModalProps> = ({
           </div>
 
           {/* Actions */}
-          <div className="pt-8 space-y-6">
+          <div className="pt-6 space-y-8">
             {/* Calendar Integration Section */}
-            <div className="pb-6 border-b border-gray-800/50">
+            <div className="bg-gray-800/30 rounded-lg p-6 border border-gray-700/50">
               <div className="text-center">
-                <p className="text-sm text-gray-400 mb-4">Add to your calendar</p>
+                <h4 className="text-lg font-medium text-white mb-2">Add to your calendar</h4>
+                <p className="text-sm text-gray-400 mb-6">Never miss this event by adding it to your calendar</p>
                 <CalendarLinkButton
                   event={event}
                   variant="secondary"
-                  size="md"
+                  size="lg"
                   showCopyOption={true}
                   onSuccess={() => {
                     console.log('Calendar link action successful');
@@ -205,20 +206,18 @@ const EventDetailsModal: React.FC<EventDetailsModalProps> = ({
             </div>
             
             {/* Main Action Buttons */}
-            <div className="flex items-center justify-between pt-2">
-              <div>
-                <button
-                  onClick={handleDelete}
-                  className="inline-flex items-center px-3 py-1.5 text-sm text-gray-500 hover:text-red-400 hover:bg-red-900/10 rounded-md transition-all duration-200"
-                >
-                  <TrashIcon className="w-4 h-4 mr-1.5" />
-                  Delete
-                </button>
-              </div>
+            <div className="flex items-center justify-between pt-4 pb-2">
+              <button
+                onClick={handleDelete}
+                className="inline-flex items-center px-4 py-2.5 text-sm text-gray-500 hover:text-red-400 hover:bg-red-900/10 rounded-lg transition-all duration-200 border border-transparent hover:border-red-900/20"
+              >
+                <TrashIcon className="w-4 h-4 mr-2" />
+                Delete
+              </button>
               
               <button
                 onClick={onEdit}
-                className="px-3 py-1.5 bg-white text-black hover:bg-gray-100 rounded-md transition-all duration-200 text-sm font-medium min-w-[80px]"
+                className="px-6 py-2.5 bg-white text-black hover:bg-gray-100 rounded-lg transition-all duration-200 text-sm font-medium min-w-[100px] shadow-sm"
               >
                 Edit Event
               </button>
