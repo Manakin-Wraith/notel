@@ -9,13 +9,11 @@ import type {
   Message,
   UserPresence,
   TypingIndicator,
-  CreateConversationRequest,
   SendMessageRequest,
-  UpdatePresenceRequest,
-  ChatServiceResponse,
-  MessageReadReceipt,
-  DEFAULT_CHAT_CONFIG
+  CreateConversationRequest,
+  ChatServiceResponse
 } from '../types/chat';
+import { DEFAULT_CHAT_CONFIG } from '../types/chat';
 
 export class ChatService {
   private static instance: ChatService;
@@ -35,21 +33,28 @@ export class ChatService {
    */
   async getConversations(): Promise<ChatServiceResponse<Conversation[]>> {
     try {
+      const user = (await supabase.auth.getUser()).data.user;
+      if (!user) throw new Error('User not authenticated');
+
+      // First get conversation IDs where user is a participant
+      const { data: participantData, error: participantError } = await supabase
+        .from('conversation_participants')
+        .select('conversation_id')
+        .eq('user_id', user.id)
+        .is('left_at', null);
+
+      if (participantError) throw participantError;
+      if (!participantData || participantData.length === 0) {
+        return { data: [], success: true };
+      }
+
+      const conversationIds = participantData.map(p => p.conversation_id);
+
+      // Then get conversations with basic info
       const { data, error } = await supabase
         .from('conversations')
-        .select(`
-          *,
-          participants:conversation_participants!inner(
-            *,
-            user:profiles(id, email, full_name, avatar_url)
-          ),
-          last_message:messages(
-            id, content, created_at, sender_id, message_type,
-            sender:profiles(full_name)
-          )
-        `)
-        .eq('conversation_participants.user_id', (await supabase.auth.getUser()).data.user?.id)
-        .is('conversation_participants.left_at', null)
+        .select('*')
+        .in('id', conversationIds)
         .order('updated_at', { ascending: false });
 
       if (error) throw error;
@@ -108,43 +113,69 @@ export class ChatService {
    */
   async getConversationDetails(conversationId: string): Promise<ChatServiceResponse<ConversationWithDetails>> {
     try {
-      const { data, error } = await supabase
+      // Get basic conversation info
+      const { data: conversation, error: convError } = await supabase
         .from('conversations')
-        .select(`
-          *,
-          participants:conversation_participants(
-            *,
-            user:profiles(id, email, full_name, avatar_url)
-          ),
-          messages(
-            *,
-            sender:profiles(id, full_name, avatar_url),
-            read_receipts:message_read_receipts(
-              *,
-              user:profiles(id, full_name, avatar_url)
-            )
-          ),
-          typing_users:typing_indicators(
-            *,
-            user:profiles(id, full_name)
-          )
-        `)
+        .select('*')
         .eq('id', conversationId)
         .single();
 
-      if (error) throw error;
+      if (convError) throw convError;
+
+      // Get participants
+      const { data: participants, error: participantError } = await supabase
+        .from('conversation_participants')
+        .select(`
+          *,
+          user:profiles(id, email, full_name, avatar_url)
+        `)
+        .eq('conversation_id', conversationId)
+        .is('left_at', null);
+
+      if (participantError) throw participantError;
+
+      // Get messages
+      const { data: messages, error: messageError } = await supabase
+        .from('messages')
+        .select(`
+          *,
+          sender:profiles(id, email, full_name, avatar_url)
+        `)
+        .eq('conversation_id', conversationId)
+        .order('created_at', { ascending: true });
+
+      if (messageError) throw messageError;
+
+      // Get active typing indicators
+      const { data: typingUsers, error: typingError } = await supabase
+        .from('typing_indicators')
+        .select(`
+          *,
+          user:profiles(id, email, full_name)
+        `)
+        .eq('conversation_id', conversationId)
+        .gt('expires_at', new Date().toISOString());
+
+      if (typingError) throw typingError;
+
+      const result: ConversationWithDetails = {
+        ...conversation,
+        participants: participants || [],
+        messages: messages || [],
+        typing_users: typingUsers || []
+      };
 
       // Filter out expired messages unless they're saved or conversation is persistent
       const now = new Date();
-      const filteredMessages = data.messages.filter((msg: any) => {
-        if (data.is_persistent || msg.is_saved) return true;
+      const filteredMessages = result.messages.filter((msg: any) => {
+        if (result.is_persistent || msg.is_saved) return true;
         if (!msg.expires_at) return true;
         return new Date(msg.expires_at) > now;
       });
 
       return { 
         data: { 
-          ...data, 
+          ...result, 
           messages: filteredMessages.sort((a: any, b: any) => 
             new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
           )
@@ -299,7 +330,7 @@ export class ChatService {
   /**
    * Update user presence
    */
-  async updatePresence(status: UpdatePresenceRequest['status']): Promise<ChatServiceResponse<boolean>> {
+  async updatePresence(status: 'online' | 'away' | 'busy' | 'offline'): Promise<ChatServiceResponse<boolean>> {
     try {
       const user = (await supabase.auth.getUser()).data.user;
       if (!user) throw new Error('User not authenticated');
