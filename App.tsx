@@ -23,7 +23,7 @@ import Board from './components/Board';
 import Router from './components/Router';
 import SettingsModal from './components/SettingsModal';
 import ProfileModal from './components/ProfileModal';
-import ChatPrototype from './components/chat/ChatPrototype';
+import RealTimeChat from './components/chat/RealTimeChat';
 
 const createBlockId = () => `${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
 
@@ -895,7 +895,7 @@ function AppContent() {
           </>
         );
       case 'chat':
-        return <ChatPrototype />;
+        return <RealTimeChat />;
       default:
         return (
           <Editor
