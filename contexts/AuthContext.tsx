@@ -1,15 +1,19 @@
 import React, { createContext, useContext, useEffect, useState } from 'react'
 import { User, Session } from '@supabase/supabase-js'
 import { supabase } from '../lib/supabase'
+import { UserProfile, ProfileService } from '../lib/profiles'
 
 interface AuthContextType {
   user: User | null
   session: Session | null
+  profile: UserProfile | null
   loading: boolean
+  profileLoading: boolean
   signIn: (email: string, password: string) => Promise<{ error: any }>
   signUp: (email: string, password: string) => Promise<{ error: any }>
   signInWithGoogle: () => Promise<{ error: any }>
   signOut: () => Promise<{ error: any }>
+  updateProfile: (profile: UserProfile) => void
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
@@ -29,7 +33,9 @@ interface AuthProviderProps {
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null)
   const [session, setSession] = useState<Session | null>(null)
+  const [profile, setProfile] = useState<UserProfile | null>(null)
   const [loading, setLoading] = useState(true)
+  const [profileLoading, setProfileLoading] = useState(false)
 
   useEffect(() => {
     // Get initial session
@@ -42,10 +48,17 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     // Listen for auth changes
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
+    } = supabase.auth.onAuthStateChange(async (_event, session) => {
       setSession(session)
       setUser(session?.user ?? null)
       setLoading(false)
+      
+      // Load user profile when user signs in
+      if (session?.user) {
+        await loadUserProfile(session.user.id)
+      } else {
+        setProfile(null)
+      }
     })
 
     return () => subscription.unsubscribe()
@@ -89,17 +102,65 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   const signOut = async () => {
     const { error } = await supabase.auth.signOut()
+    setProfile(null) // Clear profile on sign out
     return { error }
   }
+
+  // Load user profile
+  const loadUserProfile = async (userId: string) => {
+    setProfileLoading(true)
+    try {
+      const { data, error } = await ProfileService.getUserProfile(userId)
+      
+      if (error && error.code !== 'PGRST116') { // PGRST116 = no rows returned
+        console.error('Error loading profile:', error)
+        return
+      }
+      
+      // If no profile exists, create one
+      if (!data) {
+        const { data: newProfile, error: createError } = await ProfileService.createUserProfile(userId, {
+          display_name: user?.email?.split('@')[0] || null
+        })
+        
+        if (createError) {
+          console.error('Error creating profile:', createError)
+        } else {
+          setProfile(newProfile)
+        }
+      } else {
+        setProfile(data)
+      }
+    } catch (error) {
+      console.error('Error loading profile:', error)
+    } finally {
+      setProfileLoading(false)
+    }
+  }
+
+  // Update profile in context
+  const updateProfile = (updatedProfile: UserProfile) => {
+    setProfile(updatedProfile)
+  }
+
+  // Load profile when user is available
+  useEffect(() => {
+    if (user && !profile && !profileLoading) {
+      loadUserProfile(user.id)
+    }
+  }, [user, profile, profileLoading])
 
   const value = {
     user,
     session,
+    profile,
     loading,
+    profileLoading,
     signIn,
     signUp,
     signInWithGoogle,
     signOut,
+    updateProfile,
   }
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>

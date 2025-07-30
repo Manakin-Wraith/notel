@@ -9,6 +9,7 @@ import ViewColumnsIcon from './icons/ViewColumnsIcon';
 import Logo from './Logo';
 import ChevronRightIcon from './icons/ChevronRightIcon';
 import PageIcon from './icons/PageIcon';
+import ProfileCard from './ProfileCard';
 
 type DropIndicatorPosition = 'top' | 'bottom' | 'middle';
 type ViewMode = 'editor' | 'agenda' | 'board' | 'calendar';
@@ -177,13 +178,28 @@ interface SidebarProps {
   onMovePage: (draggedId: string, targetId: string, position: DropIndicatorPosition) => void;
   onSetViewMode: (mode: ViewMode) => void;
   onOpenSettings: () => void;
+  onOpenProfile: () => void;
   id?: string;
   isMobile?: boolean;
   isOpen?: boolean;
 }
 
-const Sidebar: React.FC<SidebarProps> = ({ pages, activePageId, viewMode, onSelectPage, onAddPage, onDeletePage, onMovePage, onSetViewMode, onOpenSettings, id, isMobile = false, isOpen = true }) => {
-  const { signOut } = useAuth();
+const Sidebar: React.FC<SidebarProps> = ({
+  pages,
+  activePageId,
+  viewMode,
+  onSelectPage,
+  onAddPage,
+  onDeletePage,
+  onMovePage,
+  onSetViewMode,
+  onOpenSettings,
+  onOpenProfile,
+  id,
+  isMobile = false,
+  isOpen = true
+}) => {
+  const { user, profile, signOut } = useAuth();
   const [isMac, setIsMac] = useState(false);
   const [dropIndicator, setDropIndicator] = useState<{ pageId: string, position: DropIndicatorPosition } | null>(null);
   const [expandedPages, setExpandedPages] = useState<Set<string>>(() => findAncestors(activePageId, pages));
@@ -292,8 +308,18 @@ const Sidebar: React.FC<SidebarProps> = ({ pages, activePageId, viewMode, onSele
         />
       </nav>
       
+      {/* Profile Section */}
+      <div className="mt-4 mb-4">
+        <ProfileCard
+          profile={profile}
+          userEmail={user?.email || null}
+          onClick={onOpenProfile}
+          className="mb-3"
+        />
+      </div>
+      
       {/* Settings and Sign Out Buttons */}
-      <div className="mt-4 mb-4 space-y-2">
+      <div className="mb-4 space-y-2">
         {/* Settings Button */}
         <button
           onClick={onOpenSettings}

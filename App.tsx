@@ -22,6 +22,7 @@ import Agenda from './components/Agenda';
 import Board from './components/Board';
 import Router from './components/Router';
 import SettingsModal from './components/SettingsModal';
+import ProfileModal from './components/ProfileModal';
 
 const createBlockId = () => `${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
 
@@ -149,7 +150,7 @@ const getInitialPages = (): Page[] => {
 const getRandomIcon = () => ICONS[Math.floor(Math.random() * ICONS.length)];
 
 function AppContent() {
-    const { user, loading: authLoading } = useAuth();
+    const { user, profile, updateProfile, loading: authLoading } = useAuth();
     const [pages, setPages] = useState<Page[]>(getInitialPages());
     const [events, setEvents] = useState<Event[]>([
     // Sample events to demonstrate unified Agenda with icons
@@ -193,6 +194,7 @@ function AppContent() {
     const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
     const [eventModalInitialDate, setEventModalInitialDate] = useState<string | undefined>();
     const [settingsModalOpen, setSettingsModalOpen] = useState(false);
+    const [profileModalOpen, setProfileModalOpen] = useState(false);
 
   // Load user settings from database
   const loadUserSettings = useCallback(async () => {
@@ -743,6 +745,19 @@ function AppContent() {
     setSettingsModalOpen(false);
   }, []);
 
+  const handleOpenProfile = useCallback(() => {
+    setProfileModalOpen(true);
+  }, []);
+
+  const handleCloseProfile = useCallback(() => {
+    setProfileModalOpen(false);
+  }, []);
+
+  const handleProfileUpdate = useCallback((updatedProfile: any) => {
+    // Update profile in AuthContext
+    updateProfile(updatedProfile);
+  }, [updateProfile]);
+
   const handleMovePage = useCallback(async (draggedId: string, targetId: string, position: 'top' | 'bottom' | 'middle') => {
     // First, update local state immediately and capture the new state for database sync
     let updatedPagesForSync: Page[] = [];
@@ -955,6 +970,7 @@ function AppContent() {
           if (isMobile) setIsSidebarOpen(false);
         }}
         onOpenSettings={handleOpenSettings}
+        onOpenProfile={handleOpenProfile}
         isMobile={isMobile}
         isOpen={!isMobile || isSidebarOpen}
       />
@@ -996,6 +1012,14 @@ function AppContent() {
         isOpen={settingsModalOpen}
         onClose={handleCloseSettings}
         onSave={saveUserSettings}
+      />
+      
+      {/* Profile Modal */}
+      <ProfileModal
+        isOpen={profileModalOpen}
+        onClose={handleCloseProfile}
+        profile={profile}
+        onProfileUpdate={handleProfileUpdate}
       />
       
       {/* Notification Container for Toast Notifications */}
