@@ -77,10 +77,10 @@ export class ProfileService {
   // Upload avatar image
   static async uploadAvatar(userId: string, file: File): Promise<{ data: { url: string } | null; error: any }> {
     try {
-      // Create unique filename
+      // Create unique filename with user folder structure for RLS policy
       const fileExt = file.name.split('.').pop()
-      const fileName = `${userId}-${Date.now()}.${fileExt}`
-      const filePath = `avatars/${fileName}`
+      const fileName = `avatar-${Date.now()}.${fileExt}`
+      const filePath = `${userId}/${fileName}`
 
       // Upload file to Supabase Storage
       const { error: uploadError } = await supabase.storage
@@ -105,10 +105,11 @@ export class ProfileService {
   // Delete avatar
   static async deleteAvatar(avatarUrl: string): Promise<{ error: any }> {
     try {
-      // Extract file path from URL
+      // Extract file path from URL (now includes user folder structure)
       const urlParts = avatarUrl.split('/')
       const fileName = urlParts[urlParts.length - 1]
-      const filePath = `avatars/${fileName}`
+      const userId = urlParts[urlParts.length - 2] // Extract user ID from folder structure
+      const filePath = `${userId}/${fileName}`
 
       const { error } = await supabase.storage
         .from('avatars')
