@@ -10,6 +10,14 @@ interface ShareEmailData {
   senderEmail: string;
 }
 
+interface ChatInvitationData {
+  recipientEmail: string;
+  senderName: string;
+  senderEmail: string;
+  chatUrl: string;
+  personalMessage?: string;
+}
+
 interface EmailResponse {
   success: boolean;
   error?: string;
@@ -206,6 +214,153 @@ The Notel Team
     
     <div class="footer">
       <p>This email was sent because someone shared content with you using Notel.</p>
+      <p>Notel - Minimalist productivity, inspired by Notion</p>
+    </div>
+  </div>
+</body>
+</html>
+    `.trim();
+
+    return { html, text };
+  }
+
+  /**
+   * Send a chat invitation email
+   */
+  async sendChatInvitation(data: ChatInvitationData): Promise<EmailResponse> {
+    try {
+      const subject = `${data.senderName} wants to chat with you on Notel`;
+      const { html, text } = this.generateChatInvitationContent(data);
+      
+      return await this.sendEmail({
+        to: data.recipientEmail,
+        subject,
+        html,
+        text
+      });
+    } catch (error) {
+      console.error('Failed to send chat invitation:', error);
+      return { 
+        success: false, 
+        error: error instanceof Error ? error.message : 'Unknown error' 
+      };
+    }
+  }
+
+  /**
+   * Generate chat invitation email content
+   */
+  private generateChatInvitationContent(data: ChatInvitationData): { html: string; text: string } {
+    // Text version
+    const text = `
+Hi there!
+
+${data.senderName} (${data.senderEmail}) wants to start a chat conversation with you on Notel.
+
+${data.personalMessage ? `Personal message: "${data.personalMessage}"\n\n` : ''}Join the conversation: ${data.chatUrl}
+
+Notel is a minimalist productivity app with real-time chat features. You can sign up when you're ready.
+
+Best regards,
+The Notel Team
+    `.trim();
+
+    // HTML version
+    const html = `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Chat Invitation</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      line-height: 1.6;
+      color: #374151;
+      max-width: 600px;
+      margin: 0 auto;
+      padding: 20px;
+      background-color: #f9fafb;
+    }
+    .container {
+      background: white;
+      border-radius: 12px;
+      padding: 32px;
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+    }
+    .header {
+      text-align: center;
+      margin-bottom: 32px;
+    }
+    .title {
+      font-size: 24px;
+      font-weight: bold;
+      color: #1f2937;
+      margin: 0 0 8px 0;
+    }
+    .subtitle {
+      color: #6b7280;
+      margin: 0;
+    }
+    .sender-info {
+      background: #f3f4f6;
+      padding: 16px;
+      border-radius: 8px;
+      margin: 24px 0;
+      border-left: 4px solid #8b5cf6;
+    }
+    .personal-message {
+      background: #fef3c7;
+      padding: 16px;
+      border-radius: 8px;
+      margin: 24px 0;
+      border-left: 4px solid #f59e0b;
+      font-style: italic;
+    }
+    .cta-button {
+      display: inline-block;
+      background: #8b5cf6;
+      color: white;
+      padding: 12px 24px;
+      text-decoration: none;
+      border-radius: 8px;
+      font-weight: 600;
+      margin: 24px 0;
+    }
+    .footer {
+      text-align: center;
+      margin-top: 32px;
+      padding-top: 24px;
+      border-top: 1px solid #e5e7eb;
+      color: #6b7280;
+      font-size: 14px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1 class="title">💬 Chat Invitation</h1>
+      <p class="subtitle">Someone wants to start a conversation with you</p>
+    </div>
+    
+    <div class="sender-info">
+      <strong>${data.senderName}</strong> (${data.senderEmail}) wants to chat with you on Notel.
+    </div>
+    
+    ${data.personalMessage ? `<div class="personal-message">"${data.personalMessage}"</div>` : ''}
+    
+    <div style="text-align: center;">
+      <a href="${data.chatUrl}" class="cta-button">Join Chat Conversation</a>
+    </div>
+    
+    <p style="color: #6b7280; font-size: 14px; margin-top: 16px;">
+      Notel is a minimalist productivity app with real-time chat. You can sign up when you're ready.
+    </p>
+    
+    <div class="footer">
+      <p>This chat invitation was sent via Notel.</p>
       <p>Notel - Minimalist productivity, inspired by Notion</p>
     </div>
   </div>

@@ -8,6 +8,8 @@ import { useAuth } from '../../contexts/AuthContext';
 import ProfileAvatar from '../ProfileAvatar';
 import MessageCircleIcon from '../icons/MessageCircleIcon';
 import PlusIcon from '../icons/PlusIcon';
+import OnlineUsers from './OnlineUsers';
+import ChatInviteModal from './ChatInviteModal';
 import type { CreateConversationRequest } from '../../types/chat';
 
 // Message component with save functionality
@@ -192,6 +194,7 @@ const RealTimeChat: React.FC = () => {
 
   const [messageInput, setMessageInput] = useState('');
   const [showNewConversationModal, setShowNewConversationModal] = useState(false);
+  const [showChatInviteModal, setShowChatInviteModal] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -215,6 +218,27 @@ const RealTimeChat: React.FC = () => {
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setMessageInput(e.target.value);
     setTyping(true);
+  };
+
+  // Handle new conversation creation
+  const handleCreateConversation = async (request: CreateConversationRequest) => {
+    await createConversation(request);
+    setShowNewConversationModal(false);
+  };
+
+  // Handle starting chat with online user
+  const handleStartChatWithUser = async (userId: string, userName: string) => {
+    await createConversation({
+      type: 'direct',
+      participant_ids: [userId],
+      name: `Chat with ${userName}`
+    });
+  };
+
+  // Handle chat invitation success
+  const handleChatInviteSuccess = (email: string) => {
+    // Could show success toast or create pending conversation
+    console.log(`Chat invitation sent to ${email}`);
   };
 
   // Get presence status
@@ -392,11 +416,23 @@ const RealTimeChat: React.FC = () => {
         </div>
       )}
 
+      {/* Online Users */}
+      <OnlineUsers
+        onStartChat={handleStartChatWithUser}
+      />
+
       {/* New Conversation Modal */}
       <NewConversationModal
         isOpen={showNewConversationModal}
         onClose={() => setShowNewConversationModal(false)}
-        onCreate={createConversation}
+        onCreate={handleCreateConversation}
+      />
+
+      {/* Chat Invite Modal */}
+      <ChatInviteModal
+        isOpen={showChatInviteModal}
+        onClose={() => setShowChatInviteModal(false)}
+        onSuccess={handleChatInviteSuccess}
       />
     </div>
   );
