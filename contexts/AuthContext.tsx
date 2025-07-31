@@ -89,15 +89,46 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   }
 
   const signInWithGoogle = async () => {
-    const { error } = await supabase.auth.signInWithOAuth({
-      provider: 'google',
-      options: {
-        redirectTo: import.meta.env.PROD 
-          ? 'https://notel-wine.vercel.app/'
-          : 'http://localhost:5173/'
+    try {
+      // Try popup mode first (better UX - keeps main app accessible)
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo: import.meta.env.PROD 
+            ? 'https://notel-wine.vercel.app/'
+            : 'http://localhost:5173/',
+          queryParams: {
+            access_type: 'offline',
+            prompt: 'select_account'
+          },
+          skipBrowserRedirect: true // Use popup mode
+        }
+      })
+      
+      if (error) {
+        // Fallback to redirect mode if popup fails
+        console.log('Popup failed, trying redirect mode:', error)
+        const { error: redirectError } = await supabase.auth.signInWithOAuth({
+          provider: 'google',
+          options: {
+            redirectTo: import.meta.env.PROD 
+              ? 'https://notel-wine.vercel.app/'
+              : 'http://localhost:5173/',
+            queryParams: {
+              access_type: 'offline',
+              prompt: 'select_account'
+            },
+            skipBrowserRedirect: false // Fallback to redirect
+          }
+        })
+        return { error: redirectError }
       }
-    })
-    return { error }
+      
+      return { error }
+    } catch (err) {
+      console.error('Google OAuth error:', err)
+      return { error: err }
+    }
   }
 
   const signOut = async () => {

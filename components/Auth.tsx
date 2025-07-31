@@ -11,7 +11,7 @@ const Auth: React.FC = () => {
   const [googleLoading, setGoogleLoading] = useState(false)
   const [message, setMessage] = useState('')
 
-  const { signIn, signUp, signInWithGoogle } = useAuth()
+  const { signIn, signUp, signInWithGoogle, signOut, user } = useAuth()
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -26,7 +26,7 @@ const Auth: React.FC = () => {
       if (error) {
         setMessage(error.message)
       } else if (isSignUp) {
-        setMessage('Check your email for the confirmation link!')
+        setMessage('✅ Account created! Check your email and click the confirmation link to sign in.')
       }
     } catch (error) {
       setMessage('An unexpected error occurred')
@@ -60,11 +60,57 @@ const Auth: React.FC = () => {
           </h2>
           <p className="mt-2 text-gray-400">
             {isSignUp 
-              ? 'Sign up to sync your notes across devices' 
+              ? 'Choose your preferred sign-up method below' 
               : 'Welcome back to Notel'
             }
           </p>
+          <p className="mt-1 text-sm text-gray-500">
+            Works with any email provider - Gmail, Yahoo, Outlook, and more
+          </p>
         </div>
+
+        {/* Temporary: Show sign-out option if already authenticated */}
+        {user && (
+          <div className="p-3 rounded-md bg-blue-900/20 text-blue-400 border border-blue-500/20">
+            <p className="text-sm mb-2">🚨 You're already signed in! To test new user flow:</p>
+            <div className="space-y-2">
+              <button
+                onClick={async () => {
+                  await signOut()
+                  // Force clear all browser storage
+                  localStorage.clear()
+                  sessionStorage.clear()
+                  // Clear any Supabase cached data
+                  if (typeof window !== 'undefined') {
+                    const keys = Object.keys(localStorage)
+                    keys.forEach(key => {
+                      if (key.includes('supabase') || key.includes('auth')) {
+                        localStorage.removeItem(key)
+                      }
+                    })
+                  }
+                  setMessage('✅ Session cleared! Refresh page to test new user flow.')
+                  // Force page reload after short delay
+                  setTimeout(() => {
+                    window.location.reload()
+                  }, 1500)
+                }}
+                className="px-3 py-1 bg-red-600 hover:bg-red-700 text-white text-sm rounded transition-colors mr-2"
+              >
+                🧹 Nuclear Sign Out & Reload
+              </button>
+              <button
+                onClick={async () => {
+                  await signOut()
+                  setMessage('')
+                }}
+                className="px-3 py-1 bg-blue-600 hover:bg-blue-700 text-white text-sm rounded transition-colors"
+              >
+                Regular Sign Out
+              </button>
+            </div>
+          </div>
+        )}
 
         {message && (
           <div className={`p-3 rounded-md text-sm ${
@@ -77,14 +123,15 @@ const Auth: React.FC = () => {
         )}
 
         <div className="space-y-4">
-          {/* Google Sign-In Button */}
+          {/* Email Sign-In Button - Made Primary */}
           <button
-            onClick={handleGoogleSignIn}
-            disabled={googleLoading || loading}
-            className="w-full flex items-center justify-center gap-3 px-4 py-3 bg-white hover:bg-gray-50 text-gray-900 rounded-lg transition-all duration-200 font-medium disabled:opacity-50 disabled:cursor-not-allowed border border-gray-200 hover:border-gray-300"
+            onClick={() => setShowEmailForm(!showEmailForm)}
+            className="w-full flex items-center justify-center gap-3 px-4 py-3 bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition-all duration-200 font-medium border border-purple-500 hover:border-purple-400"
           >
-            <GoogleIcon size={20} />
-            {googleLoading ? 'Signing in...' : `${isSignUp ? 'Sign up' : 'Sign in'} with Google`}
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 4.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+            </svg>
+            {isSignUp ? 'Sign up' : 'Sign in'} with email
           </button>
 
           {/* Divider */}
@@ -93,19 +140,18 @@ const Auth: React.FC = () => {
               <div className="w-full border-t border-gray-700"></div>
             </div>
             <div className="relative flex justify-center text-sm">
-              <span className="px-2 bg-[#111111] text-gray-400">or</span>
+              <span className="px-2 bg-[#111111] text-gray-400">or continue with</span>
             </div>
           </div>
 
-          {/* Email Sign-In Button */}
+          {/* Google Sign-In Button - Made Secondary */}
           <button
-            onClick={() => setShowEmailForm(!showEmailForm)}
-            className="w-full flex items-center justify-center gap-3 px-4 py-3 bg-gray-800/50 hover:bg-gray-800/70 text-gray-300 rounded-lg transition-all duration-200 font-medium border border-gray-700 hover:border-gray-600"
+            onClick={handleGoogleSignIn}
+            disabled={googleLoading || loading}
+            className="w-full flex items-center justify-center gap-3 px-4 py-3 bg-white hover:bg-gray-50 text-gray-900 rounded-lg transition-all duration-200 font-medium disabled:opacity-50 disabled:cursor-not-allowed border border-gray-200 hover:border-gray-300"
           >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 4.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-            </svg>
-            {isSignUp ? 'Sign up' : 'Sign in'} with email
+            <GoogleIcon size={20} />
+            {googleLoading ? 'Signing in...' : `${isSignUp ? 'Sign up' : 'Sign in'} with Google`}
           </button>
         </div>
 
