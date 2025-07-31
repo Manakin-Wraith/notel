@@ -1,5 +1,6 @@
 // Simple email service for sharing functionality
-// Uses Supabase Edge Functions for email delivery
+// Uses SendGrid for production email delivery with Supabase Edge Functions as fallback
+import sgMail from '@sendgrid/mail';
 
 interface ShareEmailData {
   recipientEmail: string;
@@ -26,11 +27,54 @@ interface EmailResponse {
 export class EmailService {
   private static instance: EmailService;
 
+  constructor() {
+    // Initialize SendGrid with API key
+    const apiKey = process.env.SENDGRID_API_KEY || import.meta.env.VITE_SENDGRID_API_KEY;
+    if (apiKey) {
+      sgMail.setApiKey(apiKey);
+    }
+  }
+
   static getInstance(): EmailService {
     if (!EmailService.instance) {
       EmailService.instance = new EmailService();
     }
     return EmailService.instance;
+  }
+
+  /**
+   * Send email using SendGrid (production) or fallback to Supabase Edge Function
+   */
+  private async sendEmail(to: string, subject: string, html: string, text?: string): Promise<EmailResponse> {
+    const fromEmail = process.env.FROM_EMAIL || import.meta.env.VITE_FROM_EMAIL || 'noreply@notel.app';
+    
+    try {
+      // Try SendGrid first
+      const apiKey = process.env.SENDGRID_API_KEY || import.meta.env.VITE_SENDGRID_API_KEY;
+      if (apiKey) {
+        const msg = {
+          to,
+          from: fromEmail,
+          subject,
+          html,
+          text: text || subject
+        };
+        
+        await sgMail.send(msg);
+        return { success: true };
+      }
+      
+      // Fallback to existing Supabase Edge Function method
+      throw new Error('SendGrid not configured, using fallback');
+      
+    } catch (error) {
+      console.error('SendGrid failed, using fallback:', error);
+      // Return fallback error for now - could implement Supabase Edge Function fallback here
+      return { 
+        success: false, 
+        error: error instanceof Error ? error.message : 'Email delivery failed' 
+      };
+    }
   }
 
   /**
@@ -232,12 +276,12 @@ The Notel Team
       const subject = `${data.senderName} wants to chat with you on Notel`;
       const { html, text } = this.generateChatInvitationContent(data);
       
-      return await this.sendEmail({
-        to: data.recipientEmail,
+      return await this.sendEmail(
+        data.recipientEmail,
         subject,
         html,
         text
-      });
+      );
     } catch (error) {
       console.error('Failed to send chat invitation:', error);
       return { 

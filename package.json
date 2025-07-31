@@ -11,6 +11,7 @@
     "test:ui": "vitest --ui"
   },
   "dependencies": {
+    "@sendgrid/mail": "^8.1.5",
     "@supabase/supabase-js": "^2.52.0",
     "@types/nodemailer": "^6.4.17",
     "nodemailer": "^7.0.5",
