@@ -180,7 +180,7 @@ const ProfileModal: React.FC<ProfileModalProps> = ({
           <div className="space-y-4">
             <ProfileField
               label="Display Name"
-              value={profile?.display_name}
+              value={profile?.display_name ?? null}
               placeholder="Your display name"
               maxLength={50}
               onSave={(value) => handleFieldSave('display_name', value)}
@@ -188,7 +188,7 @@ const ProfileModal: React.FC<ProfileModalProps> = ({
 
             <ProfileField
               label="Bio"
-              value={profile?.bio}
+              value={profile?.bio ?? null}
               placeholder="Tell us about yourself"
               type="textarea"
               maxLength={200}
@@ -197,7 +197,7 @@ const ProfileModal: React.FC<ProfileModalProps> = ({
 
             <ProfileField
               label="Job Title"
-              value={profile?.job_title}
+              value={profile?.job_title ?? null}
               placeholder="Your job title"
               maxLength={100}
               onSave={(value) => handleFieldSave('job_title', value)}
@@ -205,7 +205,7 @@ const ProfileModal: React.FC<ProfileModalProps> = ({
 
             <ProfileField
               label="Location"
-              value={profile?.location}
+              value={profile?.location ?? null}
               placeholder="Your location"
               maxLength={100}
               onSave={(value) => handleFieldSave('location', value)}
@@ -213,7 +213,7 @@ const ProfileModal: React.FC<ProfileModalProps> = ({
 
             <ProfileField
               label="Website"
-              value={profile?.website}
+              value={profile?.website ?? null}
               placeholder="https://yourwebsite.com"
               type="url"
               maxLength={200}
@@ -222,7 +222,7 @@ const ProfileModal: React.FC<ProfileModalProps> = ({
 
             <ProfileField
               label="Timezone"
-              value={profile?.timezone}
+              value={profile?.timezone ?? null}
               placeholder="UTC"
               onSave={(value) => handleFieldSave('timezone', value)}
             />

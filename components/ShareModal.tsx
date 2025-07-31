@@ -121,7 +121,7 @@ const ShareModal: React.FC<ShareModalProps> = ({
         shareUrl,
         contentTitle: resourceTitle || `Shared ${resourceType}`,
         contentType: resourceType,
-        senderName: user.name || 'Someone',
+        senderName: user.user_metadata?.full_name || user.email?.split('@')[0] || 'Someone',
         senderEmail: user.email || ''
       });
       
