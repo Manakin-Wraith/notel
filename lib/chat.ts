@@ -117,59 +117,103 @@ export class ChatService {
       if (convError) throw convError;
 
       // Get participants
+      // Get participants
       const { data: participants, error: participantError } = await supabase
         .from('conversation_participants')
-        .select(`
-          *,
-          user:user_profiles(id, email, full_name, avatar_url)
-        `)
-        .eq('conversation_id', conversationId)
-        .is('left_at', null);
+        .select('user_id, joined_at, left_at')
+        .eq('conversation_id', conversationId);
 
       if (participantError) throw participantError;
+
+      // Filter out participants who have left the conversation
+      const activeParticipants = participants.filter(p => p.left_at === null);
+
+      // Get user profiles for participants
+      const participantIds = activeParticipants.map(p => p.user_id);
+      const { data: participantProfilesData, error: profilesError } = await supabase
+        .from('user_profiles')
+        .select('id, user_id, display_name, avatar_url')
+        .in('user_id', participantIds);
+      const participantProfiles = Array.isArray(participantProfilesData) ? participantProfilesData : [];
+
+      if (profilesError) throw profilesError;
 
       // Get messages
       const { data: messages, error: messageError } = await supabase
         .from('messages')
-        .select(`
-          *,
-          sender:user_profiles(id, email, full_name, avatar_url)
-        `)
-        .eq('conversation_id', conversationId)
-        .order('created_at', { ascending: true });
+        .select('id, conversation_id, sender_id, content, created_at, updated_at, is_saved')
+        .eq('conversation_id', conversationId);
 
       if (messageError) throw messageError;
 
+      // Get user profiles for message senders
+      const senderIds = Array.isArray(messages) ? messages.map(m => m.sender_id) : [];
+      const { data: senderProfilesData, error: senderProfilesError } = await supabase
+        .from('user_profiles')
+        .select('id, user_id, display_name, avatar_url')
+        .in('user_id', senderIds);
+      const senderProfiles = Array.isArray(senderProfilesData) ? senderProfilesData : [];
+
+      if (senderProfilesError) throw senderProfilesError;
+
       // Get active typing indicators
-      const { data: typingUsers, error: typingError } = await supabase
+      const { data: typingIndicators, error: typingError } = await supabase
         .from('typing_indicators')
-        .select(`
-          *,
-          user:user_profiles(id, email, full_name)
-        `)
-        .eq('conversation_id', conversationId)
-        .gt('expires_at', new Date().toISOString());
+        .select('user_id, last_updated')
+        .eq('conversation_id', conversationId);
 
       if (typingError) throw typingError;
 
-      const result: ConversationWithDetails = {
+      // Filter for active typing indicators (last 10 seconds)
+      const activeTypingIndicators = Array.isArray(typingIndicators) 
+        ? typingIndicators.filter(t => {
+            const lastUpdated = new Date(t.last_updated);
+            const tenSecondsAgo = new Date(Date.now() - 10000);
+            return lastUpdated >= tenSecondsAgo;
+          })
+        : [];
+
+      // Get user profiles for typing users
+      const typingUserIds = activeTypingIndicators.map(t => t.user_id);
+      const { data: typingUserProfilesData, error: typingProfilesError } = await supabase
+        .from('user_profiles')
+        .select('id, user_id, display_name')
+        .in('user_id', typingUserIds);
+      const typingUserProfiles = Array.isArray(typingUserProfilesData) ? typingUserProfilesData : [];
+
+      if (typingProfilesError) throw typingProfilesError;
+
+      // Combine all data
+      const conversationWithDetails: ConversationWithDetails = {
         ...conversation,
-        participants: participants || [],
-        messages: messages || [],
-        typing_users: typingUsers || []
+        participants: activeParticipants.map(p => {
+          const profile = participantProfiles.find(pp => pp.user_id === p.user_id);
+          return {
+            ...p,
+            user: profile || null
+          };
+        }),
+        messages: Array.isArray(messages) ? messages.map(m => {
+          const sender = senderProfiles.find(sp => sp.user_id === m.sender_id);
+          return {
+            ...m,
+            sender: sender || null
+          };
+        }) : [],
+        typingUsers: typingUserProfiles
       };
 
       // Filter out expired messages unless they're saved or conversation is persistent
       const now = new Date();
-      const filteredMessages = result.messages.filter((msg: any) => {
-        if (result.is_persistent || msg.is_saved) return true;
+      const filteredMessages = conversationWithDetails.messages.filter((msg: any) => {
+        if (conversationWithDetails.is_persistent || msg.is_saved) return true;
         if (!msg.expires_at) return true;
         return new Date(msg.expires_at) > now;
       });
 
       return { 
         data: { 
-          ...result, 
+          ...conversationWithDetails, 
           messages: filteredMessages.sort((a: any, b: any) => 
             new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
           )
