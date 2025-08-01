@@ -159,7 +159,7 @@ export class ChatService {
       // Get active typing indicators
       const { data: typingIndicators, error: typingError } = await supabase
         .from('typing_indicators')
-        .select('user_id, last_updated')
+        .select('user_id, created_at')
         .eq('conversation_id', conversationId);
 
       if (typingError) throw typingError;
@@ -167,9 +167,9 @@ export class ChatService {
       // Filter for active typing indicators (last 10 seconds)
       const activeTypingIndicators = Array.isArray(typingIndicators) 
         ? typingIndicators.filter(t => {
-            const lastUpdated = new Date(t.last_updated);
+            const createdAt = new Date(t.created_at);
             const tenSecondsAgo = new Date(Date.now() - 10000);
-            return lastUpdated >= tenSecondsAgo;
+            return createdAt >= tenSecondsAgo;
           })
         : [];
 
