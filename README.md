@@ -22,6 +22,13 @@ Notel is a modern, responsive productivity application inspired by Notion, built
 - **Full-text Search**: Find content across all your data
 - **Responsive Design**: Works seamlessly on all devices
 
+### 💬 Chat & Messaging
+- **Real-time Chat**: Engage in 1:1 or group conversations in real-time.
+- **Presence Indicators**: See who's online, away, or offline.
+- **Typing Indicators**: Know when someone is actively typing a message.
+- **Online User List**: Quickly see all online users and start a new chat.
+- **Conversation Management**: Save important conversations and messages for later access.
+
 ## Prerequisites
 
 - Node.js (v16 or later recommended)
