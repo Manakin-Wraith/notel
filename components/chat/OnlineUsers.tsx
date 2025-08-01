@@ -23,6 +23,8 @@ const OnlineUsers: React.FC<OnlineUsersProps> = ({ onStartChat }) => {
   const { user } = useAuth();
   const [onlineUsers, setOnlineUsers] = useState<OnlineUser[]>([]);
   const [loading, setLoading] = useState(true);
+  const [showOnlineStatus, setShowOnlineStatus] = useState(true);
+  const [currentUserStatus, setCurrentUserStatus] = useState<'online' | 'away' | 'busy' | 'offline'>('online');
 
   useEffect(() => {
     if (!user) return;
@@ -34,9 +36,31 @@ const OnlineUsers: React.FC<OnlineUsersProps> = ({ onStartChat }) => {
       .channel('user_presence')
       .on('postgres_changes', 
         { event: '*', schema: 'public', table: 'user_presence' },
-        () => loadOnlineUsers()
+        (payload) => {
+          console.log('🔄 Presence change detected:', payload);
+          loadOnlineUsers();
+        }
       )
       .subscribe();
+
+    // Also update current user's presence to online when component mounts
+    const updateCurrentUserPresence = async () => {
+      try {
+        const { error } = await supabase.rpc('update_user_presence', {
+          target_user_id: user.id,
+          new_status: 'online'
+        });
+        if (error) {
+          console.error('❌ Failed to update current user presence:', error);
+        } else {
+          console.log('✅ Updated current user presence to online');
+        }
+      } catch (error) {
+        console.error('❌ Error updating current user presence:', error);
+      }
+    };
+    
+    updateCurrentUserPresence();
 
     return () => {
       subscription.unsubscribe();
@@ -45,36 +69,46 @@ const OnlineUsers: React.FC<OnlineUsersProps> = ({ onStartChat }) => {
 
   const loadOnlineUsers = async () => {
     try {
-      const { data, error } = await supabase
+      // First, get user presence data
+      const { data: presenceData, error: presenceError } = await supabase
         .from('user_presence')
-        .select(`
-          user_id,
-          status,
-          last_seen,
-          user_profiles!inner(
-            display_name,
-            email,
-            avatar_url
-          )
-        `)
+        .select('user_id, status, last_seen')
         .neq('user_id', user?.id) // Exclude current user
         .in('status', ['online', 'away', 'busy'])
         .order('last_seen', { ascending: false });
 
-      if (error) throw error;
+      if (presenceError) throw presenceError;
+      if (!presenceData || presenceData.length === 0) {
+        setOnlineUsers([]);
+        return;
+      }
 
-      const users: OnlineUser[] = data.map(item => ({
-        id: item.user_id,
-        display_name: item.user_profiles.display_name || item.user_profiles.email,
-        email: item.user_profiles.email,
-        avatar_url: item.user_profiles.avatar_url,
-        status: item.status,
-        last_seen: item.last_seen
-      }));
+      // Get user profile data for the online users
+      const userIds = presenceData.map(p => p.user_id);
+      const { data: profileData, error: profileError } = await supabase
+        .from('user_profiles')
+        .select('id, display_name, email, avatar_url')
+        .in('id', userIds);
+
+      if (profileError) throw profileError;
+
+      // Combine presence and profile data
+      const users: OnlineUser[] = presenceData.map(presence => {
+        const profile = profileData?.find(p => p.id === presence.user_id);
+        return {
+          id: presence.user_id,
+          display_name: profile?.display_name || profile?.email || 'Unknown User',
+          email: profile?.email || '',
+          avatar_url: profile?.avatar_url,
+          status: presence.status,
+          last_seen: presence.last_seen
+        };
+      }).filter(user => user.email); // Only include users with valid profiles
 
       setOnlineUsers(users);
+      console.log(`✅ Loaded ${users.length} online users:`, users.map(u => u.display_name));
     } catch (error) {
-      console.error('Failed to load online users:', error);
+      console.error('❌ Failed to load online users:', error);
     } finally {
       setLoading(false);
     }

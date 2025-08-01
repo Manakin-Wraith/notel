@@ -1,18 +1,11 @@
-import React from 'react';
-import { useAuthWithToast } from '../../hooks/useAuthWithToast';
+import React, { useState } from 'react';
+import Auth from '../Auth';
 
 const Header: React.FC = () => {
-  const { signInWithGoogle, isAuthLoading } = useAuthWithToast();
+  const [showAuthModal, setShowAuthModal] = useState(false);
 
-  const handleAuthClick = async () => {
-    try {
-      const { error } = await signInWithGoogle();
-      if (error) {
-        console.error('Authentication error:', error);
-      }
-    } catch (error) {
-      console.error('Authentication failed:', error);
-    }
+  const handleEmailSignUp = () => {
+    setShowAuthModal(true);
   };
 
   return (
@@ -47,36 +40,35 @@ const Header: React.FC = () => {
           {/* Auth Buttons */}
           <div className="flex items-center space-x-4">
             <button 
-              onClick={handleAuthClick}
-              disabled={isAuthLoading}
-              className="text-gray-300 hover:text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              onClick={handleEmailSignUp}
+              className="text-gray-300 hover:text-white transition-colors mr-4"
             >
-              {isAuthLoading ? (
-                <div className="flex items-center space-x-2">
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                  <span>Signing In...</span>
-                </div>
-              ) : (
-                'Sign In'
-              )}
+              Log In
             </button>
             <button 
-              onClick={handleAuthClick}
-              disabled={isAuthLoading}
-              className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2"
+              onClick={handleEmailSignUp}
+              className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg transition-colors"
             >
-              {isAuthLoading ? (
-                <>
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                  <span>Getting Started...</span>
-                </>
-              ) : (
-                'Get Started'
-              )}
+              Sign Up
             </button>
           </div>
         </div>
       </div>
+      
+      {/* Email Signup Modal */}
+      {showAuthModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-[#111111] p-6 rounded-lg max-w-md w-full mx-4 relative">
+            <button
+              onClick={() => setShowAuthModal(false)}
+              className="absolute top-4 right-4 text-gray-400 hover:text-white"
+            >
+              ✕
+            </button>
+            <Auth />
+          </div>
+        </div>
+      )}
     </header>
   );
 };

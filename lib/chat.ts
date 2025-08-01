@@ -121,7 +121,7 @@ export class ChatService {
         .from('conversation_participants')
         .select(`
           *,
-          user:profiles(id, email, full_name, avatar_url)
+          user:user_profiles(id, email, full_name, avatar_url)
         `)
         .eq('conversation_id', conversationId)
         .is('left_at', null);
@@ -133,7 +133,7 @@ export class ChatService {
         .from('messages')
         .select(`
           *,
-          sender:profiles(id, email, full_name, avatar_url)
+          sender:user_profiles(id, email, full_name, avatar_url)
         `)
         .eq('conversation_id', conversationId)
         .order('created_at', { ascending: true });
@@ -145,7 +145,7 @@ export class ChatService {
         .from('typing_indicators')
         .select(`
           *,
-          user:profiles(id, email, full_name)
+          user:user_profiles(id, email, full_name)
         `)
         .eq('conversation_id', conversationId)
         .gt('expires_at', new Date().toISOString());
@@ -225,7 +225,7 @@ export class ChatService {
         })
         .select(`
           *,
-          sender:profiles(id, full_name, avatar_url)
+          sender:user_profiles(id, full_name, avatar_url)
         `)
         .single();
 
@@ -280,7 +280,7 @@ export class ChatService {
         .eq('id', messageId)
         .select(`
           *,
-          sender:profiles(id, full_name, avatar_url)
+          sender:user_profiles(id, full_name, avatar_url)
         `)
         .single();
 
@@ -330,7 +330,7 @@ export class ChatService {
       if (!user) throw new Error('User not authenticated');
 
       const { error } = await supabase.rpc('update_user_presence', {
-        user_id: user.id,
+        target_user_id: user.id,
         new_status: status
       });
 
@@ -352,8 +352,8 @@ export class ChatService {
       if (!user) throw new Error('User not authenticated');
 
       const { error } = await supabase.rpc('set_typing_indicator', {
-        conversation_id: conversationId,
-        user_id: user.id
+        target_conversation_id: conversationId,
+        target_user_id: user.id
       });
 
       if (error) throw error;

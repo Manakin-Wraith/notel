@@ -3,6 +3,7 @@
 
 import React, { useState } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
+import { useToast } from '../../contexts/ToastContext';
 import { EmailService } from '../../lib/email';
 
 interface ChatInviteModalProps {
@@ -13,6 +14,7 @@ interface ChatInviteModalProps {
 
 const ChatInviteModal: React.FC<ChatInviteModalProps> = ({ isOpen, onClose, onSuccess }) => {
   const { user } = useAuth();
+  const { showSuccess, showError } = useToast();
   const [email, setEmail] = useState('');
   const [message, setMessage] = useState('');
   const [loading, setLoading] = useState(false);
@@ -41,6 +43,12 @@ const ChatInviteModal: React.FC<ChatInviteModalProps> = ({ isOpen, onClose, onSu
       });
 
       if (result.success) {
+        // Show success toast notification
+        showSuccess(
+          'Invitation Sent!', 
+          `Chat invitation sent to ${email.trim()}`
+        );
+        
         onSuccess(email.trim());
         setEmail('');
         setMessage('');
@@ -50,7 +58,12 @@ const ChatInviteModal: React.FC<ChatInviteModalProps> = ({ isOpen, onClose, onSu
       }
     } catch (error) {
       console.error('Failed to send chat invitation:', error);
-      setError(error instanceof Error ? error.message : 'Failed to send invitation');
+      const errorMessage = error instanceof Error ? error.message : 'Failed to send invitation';
+      
+      // Show error toast notification
+      showError('Failed to Send Invitation', errorMessage);
+      
+      setError(errorMessage);
     } finally {
       setLoading(false);
     }

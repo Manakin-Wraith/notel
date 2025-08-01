@@ -13,6 +13,7 @@ import { ICONS } from './components/icons/icon-constants';
 import HamburgerIcon from './components/icons/HamburgerIcon';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { NotificationProvider } from './contexts/NotificationContext';
+import { ToastProvider } from './contexts/ToastContext';
 import NotificationContainer from './components/NotificationContainer';
 import NotificationBell from './components/NotificationBell';
 import { databaseService } from './lib/database';
@@ -1037,9 +1038,11 @@ const App: React.FC = () => {
   return (
     <ProductionErrorBoundary>
       <AuthProvider>
-        <Router>
-          <AppContent />
-        </Router>
+        <ToastProvider>
+          <Router>
+            <AppContent />
+          </Router>
+        </ToastProvider>
       </AuthProvider>
     </ProductionErrorBoundary>
   );

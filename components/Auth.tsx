@@ -1,6 +1,5 @@
 import React, { useState } from 'react'
 import { useAuth } from '../contexts/AuthContext'
-import GoogleIcon from './icons/GoogleIcon'
 
 const Auth: React.FC = () => {
   const [isSignUp, setIsSignUp] = useState(false)
@@ -8,15 +7,42 @@ const Auth: React.FC = () => {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
-  const [googleLoading, setGoogleLoading] = useState(false)
   const [message, setMessage] = useState('')
 
-  const { signIn, signUp, signInWithGoogle, signOut, user } = useAuth()
+  const { signIn, signUp, signOut, user } = useAuth()
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setLoading(true)
     setMessage('')
+
+    // Validation: Ensure email and password are provided
+    if (!email.trim()) {
+      setMessage('Please enter your email address')
+      setLoading(false)
+      return
+    }
+
+    if (!password.trim()) {
+      setMessage('Please enter your password')
+      setLoading(false)
+      return
+    }
+
+    // Basic email validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+    if (!emailRegex.test(email)) {
+      setMessage('Please enter a valid email address')
+      setLoading(false)
+      return
+    }
+
+    // Password length validation for signup
+    if (isSignUp && password.length < 6) {
+      setMessage('Password must be at least 6 characters long')
+      setLoading(false)
+      return
+    }
 
     try {
       const { error } = isSignUp 
@@ -35,32 +61,18 @@ const Auth: React.FC = () => {
     }
   }
 
-  const handleGoogleSignIn = async () => {
-    setGoogleLoading(true)
-    setMessage('')
 
-    try {
-      const { error } = await signInWithGoogle()
-      if (error) {
-        setMessage(error.message)
-      }
-    } catch (error) {
-      setMessage('Failed to sign in with Google')
-    } finally {
-      setGoogleLoading(false)
-    }
-  }
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-[#111111] px-4">
       <div className="max-w-md w-full space-y-8">
         <div className="text-center">
           <h2 className="text-3xl font-bold text-gray-200">
-            {isSignUp ? 'Create Account' : 'Sign In'}
+            {isSignUp ? 'Create Account' : 'Log In'}
           </h2>
           <p className="mt-2 text-gray-400">
             {isSignUp 
-              ? 'Choose your preferred sign-up method below' 
+              ? 'Enter your email and password to get started' 
               : 'Welcome back to Notel'
             }
           </p>
@@ -123,36 +135,18 @@ const Auth: React.FC = () => {
         )}
 
         <div className="space-y-4">
-          {/* Email Sign-In Button - Made Primary */}
-          <button
-            onClick={() => setShowEmailForm(!showEmailForm)}
-            className="w-full flex items-center justify-center gap-3 px-4 py-3 bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition-all duration-200 font-medium border border-purple-500 hover:border-purple-400"
-          >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 4.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-            </svg>
-            {isSignUp ? 'Sign up' : 'Sign in'} with email
-          </button>
-
-          {/* Divider */}
-          <div className="relative">
-            <div className="absolute inset-0 flex items-center">
-              <div className="w-full border-t border-gray-700"></div>
-            </div>
-            <div className="relative flex justify-center text-sm">
-              <span className="px-2 bg-[#111111] text-gray-400">or continue with</span>
-            </div>
-          </div>
-
-          {/* Google Sign-In Button - Made Secondary */}
-          <button
-            onClick={handleGoogleSignIn}
-            disabled={googleLoading || loading}
-            className="w-full flex items-center justify-center gap-3 px-4 py-3 bg-white hover:bg-gray-50 text-gray-900 rounded-lg transition-all duration-200 font-medium disabled:opacity-50 disabled:cursor-not-allowed border border-gray-200 hover:border-gray-300"
-          >
-            <GoogleIcon size={20} />
-            {googleLoading ? 'Signing in...' : `${isSignUp ? 'Sign up' : 'Sign in'} with Google`}
-          </button>
+          {/* Show form immediately for reduced friction */}
+          {!showEmailForm && (
+            <button
+              onClick={() => setShowEmailForm(true)}
+              className="w-full flex items-center justify-center gap-3 px-4 py-3 bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition-all duration-200 font-medium"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 4.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+              </svg>
+              {isSignUp ? 'Get Started' : 'Log In'}
+            </button>
+          )}
         </div>
 
         {/* Email Form */}
